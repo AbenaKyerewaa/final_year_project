@@ -1,0 +1,143 @@
+"use client";
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+
+export default function Login() {
+  const { login, loading, user } = useAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Client-side validations
+  const validateForm = () => {
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
+      setError("Please enter a valid email address.");
+      return false;
+    }
+    if (!password) {
+      setError("Password is required.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+    try {
+      await login({
+        email: email.trim().toLowerCase(),
+        password
+      });
+      // Redirect is handled automatically by AuthContext
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please check your credentials.");
+      setSubmitting(false);
+    }
+  };
+
+  if (loading || user) {
+    return (
+      <div className="flex flex-grow items-center justify-center min-h-screen bg-black text-slate-100 font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm">Preparing EasyBiz AI...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col flex-grow items-center justify-center min-h-screen bg-slate-900 text-slate-100 font-sans bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black px-4 select-none">
+      
+      {/* Container */}
+      <div className="w-full max-w-md p-8 rounded-2xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-xl shadow-2xl">
+        
+        {/* Title */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+            Welcome Back
+          </h1>
+          <p className="text-slate-400 text-sm mt-2">
+            Log in to manage your Ghanaian SME support agent.
+          </p>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-6 p-3 text-sm text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg animate-fade-in">
+            <span className="font-semibold">Error:</span> {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* Email input */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="kojo@techhub.com"
+              required
+              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
+            />
+          </div>
+
+          {/* Password input */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full mt-2 py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold flex justify-center items-center gap-2 hover:shadow-lg hover:shadow-blue-500/20 active:translate-y-0.5 transition-all duration-200 disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                Logging in...
+              </>
+            ) : (
+              'Log In'
+            )}
+          </button>
+        </form>
+
+        {/* Footer info link */}
+        <div className="text-center mt-6 text-sm text-slate-450">
+          Don't have an account?{' '}
+          <Link href="/register" className="text-blue-400 hover:underline">
+            Register here
+          </Link>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}

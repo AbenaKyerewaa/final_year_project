@@ -1,0 +1,68 @@
+[
+  {
+    "text": "Business Name: MelTech Computers\nCategory: Retail & Electronics\nLocation: Ring Road East, Accra, Ghana\nPhone Contact: +233 30 222 3344\nWhatsApp Contact: +233 24 555 1122\nOpening Hours: Monday - Friday: 9:00 AM - 5:30 PM, Saturday: 9:00 AM - 2:00 PM\nAccepted Payment Methods: Mobile Money, Visa/Mastercard, Cash\nDelivery Options: Courier service within Accra (GHS 20-40), DHL for other regions\nAbout Business / Description: A premium computer shop in Accra specializing in new and Grade-A clean refurbished laptops, accessories, and expert computer repair services.",
+    "metadata": {
+      "business_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "source_type": "profile",
+      "source_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "title": "Business Profile",
+      "created_at": "2026-06-25T02:10:49",
+      "updated_at": "2026-06-25T02:10:49"
+    }
+  },
+  {
+    "text": "Product: Lenovo ThinkPad T14 G2.\nCategory: Laptops.\nPrice: GHS 6,500.00.\nAvailability: Available.\nQuantity in Stock: 8.\nWarranty: 6 months.\nDescription: Core i7, 16GB RAM, 512GB SSD, Windows 11, excellent performance..",
+    "metadata": {
+      "business_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "source_type": "product",
+      "source_id": "ca245e70-1794-48f6-911c-be4598ecbc6d",
+      "title": "Lenovo ThinkPad T14 G2",
+      "created_at": "2026-06-25T02:10:49",
+      "updated_at": "2026-06-25T02:10:49"
+    }
+  },
+  {
+    "text": "Product: HP ProBook 450 G8.\nCategory: Laptops.\nPrice: GHS 5,200.00.\nAvailability: Available.\nQuantity in Stock: 4.\nWarranty: 1 year.\nDescription: Core i5, 8GB RAM, 256GB SSD, 15.6 inch screen, brand new box..",
+    "metadata": {
+      "business_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "source_type": "product",
+      "source_id": "8701443b-316d-4c53-91a6-58863fb265c4",
+      "title": "HP ProBook 450 G8",
+      "created_at": "2026-06-25T02:10:49",
+      "updated_at": "2026-06-25T02:10:49"
+    }
+  },
+  {
+    "text": "Service: Laptop Screen Replacement.\nDescription: Professional screen replacement for major brands like HP, Dell, Lenovo..\nPrice: GHS 450.00.\nDuration: 90 minutes.\nAvailability: Available.",
+    "metadata": {
+      "business_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "source_type": "service",
+      "source_id": "49bb834d-42f9-477a-8a9c-cc7d7e37a86c",
+      "title": "Laptop Screen Replacement",
+      "created_at": "2026-06-25T02:10:49",
+      "updated_at": "2026-06-25T02:10:49"
+    }
+  },
+  {
+    "text": "Question: Do you sell new or used laptops?\nAnswer: We sell both brand new in box and Grade A clean refurbished laptops. Refurbished laptops undergo rigorous quality checks.",
+    "metadata": {
+      "business_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "source_type": "faq",
+      "source_id": "53347e84-8329-4aae-a619-7d10b13d5d45",
+      "title": "Do you sell new or used laptops?",
+      "created_at": "2026-06-25T02:10:49",
+      "updated_at": "2026-06-25T02:10:49"
+    }
+  },
+  {
+    "text": "Question: What is your warranty policy?\nAnswer: We provide a 1-year warranty on brand new laptops and a 6-month warranty on refurbished laptops. Accessories have 1 month warranty.",
+    "metadata": {
+      "business_id": "3b02a803-9ae4-40b0-b5a4-9467093b3f2b",
+      "source_type": "faq",
+      "source_id": "324a8eb0-3e78-4915-b0a1-8a0a4f31cb17",
+      "title": "What is your warranty policy?",
+      "created_at": "2026-06-25T02:10:49",
+      "updated_at": "2026-06-25T02:10:49"
+    }
+  }
+]

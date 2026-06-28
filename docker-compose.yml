@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: easybiz_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: easybiz_user
+      POSTGRES_PASSWORD: easybiz_password_2026
+      POSTGRES_DB: easybiz_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: easybiz_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://easybiz_user:easybiz_password_2026@postgres:5432/easybiz_db
+      - JWT_SECRET=super_secret_key_for_development_change_in_production_12345
+      - AI_MODE=mock
+      - CORS_ORIGINS=http://localhost:3000
+      - WHATSAPP_MODE=simulation
+      - WHATSAPP_VERIFY_TOKEN=easybiz_verify_token_2026
+    depends_on:
+      - postgres
+    volumes:
+      - vector_indices:/app/vector_indices
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: easybiz_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  vector_indices:
+  backend_uploads:

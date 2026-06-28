@@ -1,0 +1,773 @@
+Technical Methodology for the AI-Powered Local Business Assistant
+The methodology explains how we will build the system from the technical side.
+The project will be built as a web-based AI customer support platform where a business owner uploads business information, and customers ask questions through a chatbot. The AI will answer using only the uploaded business data through Retrieval-Augmented Generation, also known as RAG.
+________________________________________
+1. System Overview
+The system will have three main users:
+1.	Business Owner
+o	Adds business information.
+o	Uploads products, services, prices, and FAQs.
+o	Updates stock availability.
+o	Views customer questions.
+2.	Customer
+o	Asks questions through a web chatbot or WhatsApp.
+o	Receives automatic AI responses.
+3.	System Admin
+o	Manages businesses.
+o	Monitors usage.
+o	Handles abuse or system errors.
+The basic flow is:
+Business Owner uploads business data
+        ↓
+System processes and stores the data
+        ↓
+Customer asks a question
+        ↓
+System searches the business data
+        ↓
+AI generates an answer
+        ↓
+Customer receives response
+________________________________________
+2. Proposed System Architecture
+                   ┌──────────────────────┐
+                   │   Business Owner UI   │
+                   │  Dashboard / Portal   │
+                   └──────────┬───────────┘
+                              │
+                              v
+                   ┌──────────────────────┐
+                   │      Backend API      │
+                   │ FastAPI / Node.js API │
+                   └──────────┬───────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+          v                   v                   v
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│ Main Database   │  │ Vector Database │  │ File Storage    │
+│ PostgreSQL      │  │ Chroma / FAISS  │  │ PDFs / CSVs     │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+          │                   │
+          └─────────┬─────────┘
+                    v
+          ┌─────────────────────┐
+          │    AI RAG Engine     │
+          │ Retrieval + LLM      │
+          └─────────┬───────────┘
+                    v
+          ┌─────────────────────┐
+          │ Customer Interfaces │
+          │ Web Chat / WhatsApp │
+          └─────────────────────┘
+________________________________________
+3. Main System Modules
+A. Authentication Module
+This module allows business owners to create accounts and log in.
+Features
+•	Register business owner
+•	Login
+•	Logout
+•	Password reset
+•	Role-based access
+Example roles:
+Admin
+Business Owner
+Staff
+Customer
+For the final-year version, you can keep it simple:
+Business Owner
+Customer
+________________________________________
+B. Business Profile Module
+This module allows each business to create a profile.
+The business owner enters:
+•	Business name
+•	Category
+•	Location
+•	Contact number
+•	WhatsApp number
+•	Opening hours
+•	Payment methods
+•	Delivery options
+•	Short business description
+Example:
+Business Name: MelTech Computers
+Category: Electronics Shop
+Location: Adum, Kumasi
+Opening Hours: Monday to Saturday, 8:00 AM - 6:00 PM
+Payment: Cash, MoMo, Bank Transfer
+Delivery: Kumasi only
+This information becomes part of the AI knowledge base.
+________________________________________
+C. Product and Service Management Module
+This is where the business owner adds products or services.
+For a shop, the owner can add:
+•	Product name
+•	Category
+•	Description
+•	Price
+•	Quantity
+•	Availability
+•	Warranty
+•	Image
+Example product record:
+Product Name: HP EliteBook 840 G6
+Category: Laptop
+Price: GHS 4,200
+Availability: Available
+Warranty: 3 months
+Description: Core i5, 8GB RAM, 256GB SSD
+For a school, the owner can add:
+Service: Admission Form
+Price: GHS 100
+Description: Available for JHS and SHS applicants
+Deadline: 30th August
+The product/service information will be stored in the normal database and also converted into text for the RAG system.
+________________________________________
+D. FAQ Upload Module
+The owner should be able to add FAQs manually or upload a document.
+Supported formats for the final-year version:
+•	Manual text entry
+•	CSV
+•	PDF
+•	DOCX, optional later
+Example FAQ:
+Question: Do you deliver?
+Answer: Yes, we deliver within Kumasi. Delivery fee starts from GHS 15.
+The system will process this into chunks and store it in the vector database.
+________________________________________
+4. RAG Methodology
+This is the most important technical part of the project.
+RAG stands for:
+Retrieval-Augmented Generation
+It means the AI does not just answer from its general knowledge. It first retrieves relevant information from the business’s uploaded data, then uses that information to generate an answer.
+________________________________________
+RAG Pipeline
+Business Data Upload
+        ↓
+Data Cleaning
+        ↓
+Text Chunking
+        ↓
+Embedding Generation
+        ↓
+Vector Storage
+        ↓
+Customer Question
+        ↓
+Question Embedding
+        ↓
+Similarity Search
+        ↓
+Relevant Context Retrieval
+        ↓
+LLM Response Generation
+        ↓
+Final Answer
+________________________________________
+Step 1: Data Collection
+The system collects business data from:
+•	Product forms
+•	Service forms
+•	FAQ forms
+•	Uploaded CSV files
+•	Uploaded PDF files
+•	Business profile information
+All these will be converted into clean text.
+Example raw product data:
+HP EliteBook 840 G6, GHS 4,200, Available, Core i5, 8GB RAM, 256GB SSD
+Converted text:
+Product: HP EliteBook 840 G6.
+Category: Laptop.
+Price: GHS 4,200.
+Availability: Available.
+Specification: Core i5, 8GB RAM, 256GB SSD.
+Warranty: 3 months.
+________________________________________
+Step 2: Data Cleaning
+Before sending data to the AI system, the text must be cleaned.
+Cleaning includes:
+•	Removing empty spaces
+•	Removing duplicate information
+•	Fixing broken text from PDFs
+•	Standardizing price format
+•	Standardizing availability status
+•	Removing irrelevant characters
+Example:
+HP laptop!!!! price--4200gh
+Cleaned version:
+HP laptop price is GHS 4,200.
+________________________________________
+Step 3: Text Chunking
+Large documents will be split into smaller pieces called chunks.
+This helps the system retrieve only the most relevant information.
+Example chunk:
+MelTech Computers sells HP EliteBook 840 G6 for GHS 4,200.
+The laptop has Core i5 processor, 8GB RAM, and 256GB SSD.
+It is currently available and comes with 3 months warranty.
+For final-year project, a good chunk size can be:
+300 to 500 words per chunk
+For product data, each product can be one chunk.
+________________________________________
+Step 4: Embedding Generation
+Each chunk is converted into a numerical representation called an embedding.
+An embedding helps the system understand meaning.
+For example, these questions may have similar meaning:
+Do you have HP laptops?
+Are HP laptops available?
+Can I buy an HP laptop from your shop?
+The embedding model helps the system understand that these questions are related.
+Possible embedding models:
+all-MiniLM-L6-v2
+bge-small-en
+nomic-embed-text
+text-embedding models
+For your local final-year version, use:
+Sentence Transformers: all-MiniLM-L6-v2
+or, if using Ollama:
+nomic-embed-text
+________________________________________
+Step 5: Vector Database Storage
+The embeddings are stored in a vector database.
+The vector database allows fast similarity search.
+For final-year project, use:
+ChromaDB
+Alternative:
+FAISS
+The vector database will store:
+chunk_id
+business_id
+chunk_text
+embedding
+source_type
+created_at
+Example:
+business_id: 12
+source_type: product
+chunk_text: HP EliteBook 840 G6 costs GHS 4,200...
+embedding: [0.023, -0.015, 0.781, ...]
+The business_id is very important because each business must only search its own data.
+________________________________________
+Step 6: Customer Question Processing
+When a customer asks:
+Do you have HP laptops?
+The system performs these actions:
+1.	Detects which business the customer is chatting with.
+2.	Converts the question into an embedding.
+3.	Searches only that business’s vector data.
+4.	Retrieves the most relevant chunks.
+5.	Sends the retrieved context and customer question to the LLM.
+________________________________________
+Step 7: Similarity Search
+The system compares the customer’s question with the stored business data.
+It may retrieve the top 3 to 5 most relevant chunks.
+Example retrieved chunks:
+Chunk 1:
+HP EliteBook 840 G6 is available for GHS 4,200.
+
+Chunk 2:
+HP Pavilion 15 is available for GHS 5,100.
+
+Chunk 3:
+HP ProBook 450 is available for GHS 3,900.
+________________________________________
+Step 8: LLM Response Generation
+The retrieved information is passed to the AI model.
+The prompt should instruct the AI clearly:
+You are a customer support assistant for MelTech Computers.
+Answer the customer's question using only the business information provided.
+Do not invent prices, products, discounts, or availability.
+If the answer is not found in the context, say you do not have that information and recommend contacting staff.
+Be polite, brief, and helpful.
+Then the system adds:
+Business context:
+[retrieved chunks]
+
+Customer question:
+Do you have HP laptops?
+AI response:
+Yes. We currently have three HP laptops available:
+1. HP EliteBook 840 G6 - GHS 4,200
+2. HP Pavilion 15 - GHS 5,100
+3. HP ProBook 450 - GHS 3,900
+
+Would you like the specifications for any of them?
+________________________________________
+5. Recommended AI Stack
+For the final-year version, use a simple and reliable stack.
+Option A: Local AI Version
+This is good if you want to show that the project can run locally.
+LLM: Ollama
+Model: Gemma, Mistral, or Llama
+Embedding: nomic-embed-text or Sentence Transformers
+Vector DB: ChromaDB
+Backend: FastAPI
+Frontend: Next.js or React
+Database: PostgreSQL
+Option B: API-Based Version
+This is easier and may give better responses.
+LLM: OpenAI / Gemini / Groq
+Embedding: OpenAI embeddings or Sentence Transformers
+Vector DB: ChromaDB / Supabase Vector
+Backend: FastAPI
+Frontend: Next.js
+Database: Supabase PostgreSQL
+My recommended final-year stack for you:
+Frontend: Next.js
+Backend: FastAPI
+Database: PostgreSQL or Supabase
+Vector DB: ChromaDB
+Embedding Model: Sentence Transformers
+LLM: Ollama with Mistral/Gemma or Groq API
+This gives you a strong AI project without making it too complicated.
+________________________________________
+6. Database Design
+Main Tables
+users
+id
+full_name
+email
+password_hash
+role
+created_at
+businesses
+id
+owner_id
+business_name
+category
+location
+phone
+whatsapp_number
+opening_hours
+payment_methods
+delivery_options
+description
+created_at
+products
+id
+business_id
+name
+category
+description
+price
+quantity
+availability_status
+warranty
+created_at
+updated_at
+services
+id
+business_id
+name
+description
+price
+duration
+availability_status
+created_at
+updated_at
+faqs
+id
+business_id
+question
+answer
+created_at
+updated_at
+documents
+id
+business_id
+file_name
+file_type
+file_url
+processed_status
+created_at
+chat_sessions
+id
+business_id
+customer_name
+customer_phone
+channel
+created_at
+chat_messages
+id
+session_id
+sender
+message
+response_source
+created_at
+escalations
+id
+business_id
+session_id
+reason
+status
+created_at
+________________________________________
+7. Backend Methodology
+The backend will control the main system logic.
+Main backend responsibilities:
+•	User authentication
+•	Business profile management
+•	Product and FAQ management
+•	Document upload
+•	Data preprocessing
+•	Embedding generation
+•	Vector database storage
+•	Customer chat handling
+•	AI response generation
+•	Chat history storage
+•	Escalation handling
+________________________________________
+Important API Endpoints
+Authentication
+POST /auth/register
+POST /auth/login
+POST /auth/logout
+Business
+POST /business
+GET /business/{business_id}
+PUT /business/{business_id}
+Products
+POST /business/{business_id}/products
+GET /business/{business_id}/products
+PUT /products/{product_id}
+DELETE /products/{product_id}
+FAQs
+POST /business/{business_id}/faqs
+GET /business/{business_id}/faqs
+PUT /faqs/{faq_id}
+DELETE /faqs/{faq_id}
+AI Chat
+POST /chat/{business_id}
+Request:
+{
+  "customer_id": "optional",
+  "message": "Do you have HP laptops?"
+}
+Response:
+{
+  "answer": "Yes, we currently have three HP laptops available...",
+  "source": "business_knowledge_base",
+  "confidence": 0.89
+}
+Document Upload
+POST /business/{business_id}/documents/upload
+Re-index Business Data
+POST /business/{business_id}/reindex
+This endpoint updates the vector database after new products or FAQs are added.
+________________________________________
+8. Frontend Methodology
+The frontend will have two main interfaces.
+A. Business Owner Dashboard
+Pages:
+Login Page
+Register Page
+Dashboard Home
+Business Profile Page
+Products Page
+Services Page
+FAQ Page
+Document Upload Page
+Chat History Page
+Settings Page
+The dashboard should be simple because many business owners are not technical.
+Important buttons:
+Add Product
+Update Price
+Mark as Out of Stock
+Upload FAQ
+Test AI Assistant
+View Customer Questions
+________________________________________
+B. Customer Chat Interface
+The customer side can be a simple chat page.
+Example:
+Welcome to MelTech Computers.
+Ask us anything about our products, prices, delivery, or location.
+
+[Type your message...]
+The customer enters:
+Do you have HP laptops?
+The AI replies:
+Yes, we currently have HP EliteBook 840 G6 and HP Pavilion 15 available.
+________________________________________
+9. WhatsApp Integration Methodology
+For the final-year project, WhatsApp can be optional.
+You can first build web chat, then explain WhatsApp as future work or implement it if time allows.
+The WhatsApp flow:
+Customer sends WhatsApp message
+        ↓
+WhatsApp Cloud API sends message to webhook
+        ↓
+Backend receives message
+        ↓
+Backend identifies business
+        ↓
+RAG engine retrieves relevant data
+        ↓
+LLM generates response
+        ↓
+Backend sends reply through WhatsApp API
+Webhook endpoint:
+POST /webhooks/whatsapp
+The backend must handle:
+•	Incoming WhatsApp messages
+•	Business phone number mapping
+•	Customer phone number
+•	Message history
+•	AI response
+•	Sending reply back to WhatsApp
+For final-year demo, you can simulate WhatsApp using a web chat interface that looks like WhatsApp.
+That will save time.
+________________________________________
+10. Voice Support Methodology
+Voice support should come after text chat is working.
+Flow:
+Customer records voice
+        ↓
+Speech-to-text model converts audio to text
+        ↓
+Text is sent to RAG engine
+        ↓
+AI generates text response
+        ↓
+Optional text-to-speech converts reply to audio
+Possible tools:
+Speech-to-text: Whisper
+Text-to-speech: Browser TTS / ElevenLabs / Coqui TTS
+For the final-year version, you can implement:
+Voice input only
+That means the user speaks, the system converts it to text, and the AI replies in text.
+This is easier than full voice conversation.
+________________________________________
+11. AI Guardrails
+The AI must follow rules so it does not mislead customers.
+Guardrail 1: Answer only from business data
+If the answer is not in the retrieved context:
+I do not have that information yet. Please contact the business directly.
+Guardrail 2: Do not invent prices
+Wrong:
+The laptop is GHS 5,000.
+Correct:
+I do not have the price for that product in the current business data.
+Guardrail 3: Escalate sensitive questions
+For pharmacies:
+I cannot provide medical advice. Please speak to a licensed pharmacist.
+Guardrail 4: Detect low confidence
+If the similarity score is too low, the AI should not answer confidently.
+Example:
+I could not find that information in the business records. Would you like me to connect you to a staff member?
+Guardrail 5: Human handoff
+If customer says:
+I want to speak to a human.
+The system should create an escalation record.
+________________________________________
+12. AI Confidence Scoring
+The system should calculate a basic confidence score using retrieval similarity.
+Example:
+Similarity score above 0.75 = confident
+Similarity score between 0.50 and 0.75 = moderate
+Similarity score below 0.50 = low confidence
+Simple decision logic:
+if similarity_score < 0.50:
+    return "I do not have enough information about that. Please contact a staff member."
+else:
+    generate_ai_answer()
+This helps reduce wrong answers.
+________________________________________
+13. Chat Flow Logic
+Customer sends question
+        ↓
+Backend receives question
+        ↓
+Check business ID
+        ↓
+Check if message requires human handoff
+        ↓
+Convert question to embedding
+        ↓
+Search vector database
+        ↓
+Check similarity score
+        ↓
+If confidence is high, generate answer
+        ↓
+If confidence is low, escalate or say unknown
+        ↓
+Save chat history
+        ↓
+Return answer to customer
+________________________________________
+14. Example Pseudocode
+def handle_customer_message(business_id, customer_message):
+    # Step 1: Check if customer wants human support
+    if "human" in customer_message.lower() or "agent" in customer_message.lower():
+        create_escalation(business_id, customer_message)
+        return "I will connect you to a staff member."
+
+    # Step 2: Convert customer question into embedding
+    question_embedding = embedding_model.encode(customer_message)
+
+    # Step 3: Retrieve relevant business information
+    retrieved_chunks = vector_db.search(
+        business_id=business_id,
+        query_embedding=question_embedding,
+        top_k=5
+    )
+
+    # Step 4: Check confidence
+    if retrieved_chunks[0].score < 0.50:
+        return "I do not have that information yet. Please contact the business directly."
+
+    # Step 5: Build AI prompt
+    prompt = build_prompt(
+        context=retrieved_chunks,
+        question=customer_message
+    )
+
+    # Step 6: Generate answer
+    answer = llm.generate(prompt)
+
+    # Step 7: Save chat history
+    save_chat_message(business_id, customer_message, answer)
+
+    return answer
+________________________________________
+15. Data Processing Methodology
+When the business owner adds or updates data, the system must update both:
+1.	Normal database
+2.	Vector database
+Example:
+The owner changes:
+HP EliteBook price from GHS 4,200 to GHS 4,000
+The system should:
+Update product table
+Delete old vector chunk
+Create new text chunk
+Generate new embedding
+Store updated vector
+This is important because the AI should not answer with old prices.
+________________________________________
+16. Development Phases
+Phase 1: Basic Web Application
+Build:
+•	Login/register
+•	Business profile
+•	Product management
+•	FAQ management
+•	Simple customer chat
+No AI yet.
+________________________________________
+Phase 2: RAG Engine
+Build:
+•	Convert business data into text
+•	Generate embeddings
+•	Store in ChromaDB
+•	Search relevant data
+•	Send retrieved data to LLM
+•	Generate customer answer
+________________________________________
+Phase 3: Dashboard Improvements
+Add:
+•	Chat history
+•	Unanswered questions
+•	Escalation page
+•	Product availability update
+•	Test AI assistant button
+________________________________________
+Phase 4: WhatsApp Simulation or Integration
+For final-year:
+•	Simulate WhatsApp with web chat
+For startup:
+•	Connect actual WhatsApp Cloud API
+________________________________________
+Phase 5: Voice Support
+Add:
+•	Voice recording
+•	Speech-to-text
+•	Send transcribed text to chatbot
+•	AI replies in text
+________________________________________
+Phase 6: Evaluation and Testing
+Test:
+•	Accuracy
+•	Speed
+•	Usability
+•	Hallucination rate
+•	Retrieval quality
+________________________________________
+17. Final-Year Project Boundary
+To avoid making the project too big, the final-year version should include:
+Must-have
+•	Business owner dashboard
+•	Product/service entry
+•	FAQ entry
+•	RAG chatbot
+•	Customer web chat
+•	Chat history
+•	Basic confidence handling
+•	Evaluation
+Nice-to-have
+•	PDF upload
+•	CSV upload
+•	Voice input
+•	WhatsApp simulation
+Future work
+•	Real WhatsApp integration
+•	Full local language support
+•	MoMo payment integration
+•	Inventory management
+•	Mobile app
+•	Text-to-speech
+•	Multi-branch support
+________________________________________
+18. Suggested Folder Structure
+bizmate-ai/
+│
+├── backend/
+│   ├── app/
+│   │   ├── auth/
+│   │   ├── businesses/
+│   │   ├── products/
+│   │   ├── faqs/
+│   │   ├── chat/
+│   │   ├── rag/
+│   │   ├── documents/
+│   │   ├── database/
+│   │   └── main.py
+│   │
+│   ├── requirements.txt
+│   └── .env
+│
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   └── package.json
+│
+├── vector_store/
+│
+├── docs/
+│   ├── proposal.md
+│   ├── methodology.md
+│   └── sample_business_data.csv
+│
+└── README.md
+________________________________________
+19. Methodology Summary
+The system will be developed using a modular architecture made up of a frontend dashboard, backend API, relational database, vector database, and AI RAG engine. Business owners will upload products, services, prices, and FAQs through the dashboard. The backend will clean and convert this information into text chunks, generate embeddings, and store them in a vector database. When a customer asks a question, the system will retrieve the most relevant business information and pass it to a language model to generate a response. The AI will be restricted to the business’s own data to reduce hallucination. The final response will be delivered through a web chat interface, with future support for WhatsApp and voice interaction.
+________________________________________
+20. The Best Technical Scope for You
+For the final-year project, build this:
+A web-based AI customer support assistant for Ghanaian SMEs using RAG.
+Your core system should include:
+Next.js frontend
+FastAPI backend
+PostgreSQL database
+ChromaDB vector database
+Sentence Transformers embeddings
+Ollama or Groq for LLM response generation
+Then in your report, describe WhatsApp, voice, local language support, and MoMo payment as future expansion.
+This keeps the project realistic, impressive, and buildable.
+

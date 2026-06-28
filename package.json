@@ -1,0 +1,12 @@
+{
+  "name": "easybiz-ai-root",
+  "version": "1.0.0",
+  "description": "Root orchestrator for EasyBiz AI Full-Stack SME Assistant",
+  "scripts": {
+    "start": "node start.js",
+    "dev": "node start.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,994 @@
+Below are 15 phased prompts you can give to any agentic IDE like Cursor, Claude Code, Windsurf, Replit Agent, etc. Each phase is written as a builder prompt, so you can copy and paste phase by phase.
+I designed it so the builder can choose whether to use offline AI with Ollama/local models or API-based AI like OpenAI/Gemini/Groq.
+________________________________________
+Phase 1 Prompt: Project Setup and Architecture
+You are building an AI-powered local business assistant for Ghanaian SMEs.
+
+Project name: BizMate AI
+
+Build a full-stack web application where business owners can upload their business information, products, services, prices, FAQs, and documents. Customers can then ask questions through a chatbot, and the AI answers using Retrieval-Augmented Generation.
+
+The system must support both possible AI modes:
+1. Offline/local AI mode using Ollama or local models.
+2. API-based AI mode using OpenAI, Gemini, Groq, Claude, or another provider.
+
+Do not hardcode one AI provider. Create an AI provider abstraction so the builder can choose later through environment variables.
+
+Set up the project with this structure:
+
+bizmate-ai/
+  backend/
+    app/
+      auth/
+      businesses/
+      products/
+      services/
+      faqs/
+      documents/
+      chat/
+      rag/
+      ai_providers/
+      database/
+      utils/
+      main.py
+    requirements.txt
+    .env.example
+
+  frontend/
+    app/
+    components/
+    lib/
+    services/
+    styles/
+    package.json
+
+  docs/
+    README.md
+    methodology.md
+
+Recommended stack:
+Frontend: Next.js with TypeScript and Tailwind CSS
+Backend: FastAPI with Python
+Database: PostgreSQL
+Vector DB: ChromaDB or FAISS
+Embeddings: Sentence Transformers or provider-based embeddings
+LLM: configurable local or API-based provider
+
+Tasks:
+1. Initialize frontend and backend folders.
+2. Set up FastAPI backend.
+3. Set up Next.js frontend.
+4. Configure Tailwind CSS.
+5. Create .env.example files for frontend and backend.
+6. Add basic README with project overview.
+7. Add CORS configuration in backend.
+8. Add health check route: GET /health.
+9. Make sure frontend can call backend health route.
+10. Keep the code modular and clean.
+
+Important:
+Do not build the AI logic yet.
+Only create the foundation and project structure.
+________________________________________
+Phase 2 Prompt: Database Design and Backend Models
+Continue building BizMate AI.
+
+Now implement the backend database layer.
+
+Use PostgreSQL as the main relational database. Use SQLAlchemy or SQLModel with Alembic migrations.
+
+Create database models for:
+
+1. User
+- id
+- full_name
+- email
+- password_hash
+- role
+- created_at
+- updated_at
+
+2. Business
+- id
+- owner_id
+- business_name
+- category
+- location
+- phone
+- whatsapp_number
+- opening_hours
+- payment_methods
+- delivery_options
+- description
+- created_at
+- updated_at
+
+3. Product
+- id
+- business_id
+- name
+- category
+- description
+- price
+- currency
+- quantity
+- availability_status
+- warranty
+- image_url
+- created_at
+- updated_at
+
+4. Service
+- id
+- business_id
+- name
+- description
+- price
+- currency
+- duration
+- availability_status
+- created_at
+- updated_at
+
+5. FAQ
+- id
+- business_id
+- question
+- answer
+- created_at
+- updated_at
+
+6. Document
+- id
+- business_id
+- file_name
+- file_type
+- file_path
+- processed_status
+- created_at
+- updated_at
+
+7. ChatSession
+- id
+- business_id
+- customer_name
+- customer_phone
+- channel
+- created_at
+
+8. ChatMessage
+- id
+- session_id
+- sender
+- message
+- ai_response_source
+- confidence_score
+- created_at
+
+9. Escalation
+- id
+- business_id
+- session_id
+- reason
+- status
+- created_at
+- updated_at
+
+Tasks:
+1. Create database connection settings.
+2. Create all models.
+3. Create migration files.
+4. Add database initialization.
+5. Add seed script with one sample business, products, services, and FAQs.
+6. Add clear relationship definitions between tables.
+7. Make sure all timestamps are handled properly.
+8. Use UUIDs or integer IDs consistently.
+
+Important:
+Do not build the frontend yet.
+Do not build AI logic yet.
+Focus on stable database structure.
+________________________________________
+Phase 3 Prompt: Authentication and User Management
+Continue building BizMate AI.
+
+Now implement user authentication and user management.
+
+The platform needs business owners to register and log in before they can create and manage business profiles.
+
+Use JWT authentication.
+
+Implement the following backend endpoints:
+
+POST /auth/register
+- full_name
+- email
+- password
+- role defaults to business_owner
+
+POST /auth/login
+- email
+- password
+- returns access token
+
+GET /auth/me
+- returns current logged-in user
+
+POST /auth/logout
+- optional placeholder route if using JWT
+
+Requirements:
+1. Hash passwords securely using bcrypt.
+2. Validate emails.
+3. Prevent duplicate email registration.
+4. Add role support for:
+   - admin
+   - business_owner
+   - staff
+5. Create authentication dependency for protected routes.
+6. Add clean error responses.
+7. Update .env.example with JWT secret and expiry settings.
+
+Frontend tasks:
+1. Create login page.
+2. Create register page.
+3. Store token securely enough for development.
+4. Create auth service for API calls.
+5. Redirect logged-in users to dashboard.
+6. Protect dashboard routes from unauthenticated users.
+7. Add logout button.
+
+Important:
+Keep UI simple and clean.
+Do not implement business management yet.
+________________________________________
+Phase 4 Prompt: Business Profile Management
+Continue building BizMate AI.
+
+Now implement business profile management.
+
+A logged-in business owner should be able to create and manage one or more business profiles.
+
+Backend endpoints:
+
+POST /businesses
+- Create a new business profile for the logged-in user.
+
+GET /businesses
+- List businesses owned by the current user.
+
+GET /businesses/{business_id}
+- Get one business profile.
+
+PUT /businesses/{business_id}
+- Update business profile.
+
+DELETE /businesses/{business_id}
+- Delete business profile.
+
+Business fields:
+- business_name
+- category
+- location
+- phone
+- whatsapp_number
+- opening_hours
+- payment_methods
+- delivery_options
+- description
+
+Validation:
+1. Only the owner or admin can update/delete a business.
+2. Required fields: business_name, category, location, phone.
+3. Prevent unauthorized access.
+
+Frontend tasks:
+1. Create dashboard layout.
+2. Create business list page.
+3. Create business profile creation form.
+4. Create business profile edit page.
+5. Add navigation sidebar:
+   - Dashboard
+   - Businesses
+   - Products
+   - Services
+   - FAQs
+   - Documents
+   - Chat Test
+   - Chat History
+   - Settings
+6. Display business details clearly.
+7. Allow user to select active business.
+
+Important:
+Do not add AI or RAG yet.
+Focus on business profile CRUD.
+________________________________________
+Phase 5 Prompt: Product and Service Management
+Continue building BizMate AI.
+
+Now implement product and service management for each business.
+
+Backend product endpoints:
+
+POST /businesses/{business_id}/products
+GET /businesses/{business_id}/products
+GET /products/{product_id}
+PUT /products/{product_id}
+DELETE /products/{product_id}
+
+Product fields:
+- name
+- category
+- description
+- price
+- currency, default GHS
+- quantity
+- availability_status: available, out_of_stock, limited
+- warranty
+- image_url
+
+Backend service endpoints:
+
+POST /businesses/{business_id}/services
+GET /businesses/{business_id}/services
+GET /services/{service_id}
+PUT /services/{service_id}
+DELETE /services/{service_id}
+
+Service fields:
+- name
+- description
+- price
+- currency, default GHS
+- duration
+- availability_status
+
+Rules:
+1. Only the business owner, staff, or admin can manage products/services.
+2. Product price must be non-negative.
+3. Quantity must be non-negative.
+4. Availability should be easy to update.
+5. Deleting a product should not break the system.
+
+Frontend tasks:
+1. Products page.
+2. Add product form.
+3. Edit product form.
+4. Product table/list.
+5. Mark product as out of stock.
+6. Services page.
+7. Add service form.
+8. Edit service form.
+9. Service table/list.
+10. Use clean UI suitable for non-technical business owners.
+
+Important:
+Later, product and service data will be indexed into the vector database.
+For now, just implement normal CRUD.
+________________________________________
+Phase 6 Prompt: FAQ and Document Upload System
+Continue building BizMate AI.
+
+Now implement FAQ management and document upload.
+
+FAQ backend endpoints:
+
+POST /businesses/{business_id}/faqs
+GET /businesses/{business_id}/faqs
+GET /faqs/{faq_id}
+PUT /faqs/{faq_id}
+DELETE /faqs/{faq_id}
+
+FAQ fields:
+- question
+- answer
+
+Document upload backend endpoints:
+
+POST /businesses/{business_id}/documents/upload
+GET /businesses/{business_id}/documents
+GET /documents/{document_id}
+DELETE /documents/{document_id}
+
+Supported document types for MVP:
+- .txt
+- .csv
+- .pdf, optional if easy
+- .docx, optional if easy
+
+Document fields:
+- file_name
+- file_type
+- file_path
+- processed_status: pending, processed, failed
+
+Tasks:
+1. Implement secure file upload.
+2. Store files in backend/uploads/{business_id}/.
+3. Save document record in database.
+4. Add file size limit.
+5. Validate file type.
+6. Extract text from TXT and CSV.
+7. If PDF extraction is easy, add it using a reliable library.
+8. Store extracted text temporarily or prepare it for indexing later.
+
+Frontend tasks:
+1. FAQ management page.
+2. Add FAQ form.
+3. Edit FAQ form.
+4. Documents page.
+5. Upload document component.
+6. Show uploaded documents.
+7. Show processing status.
+
+Important:
+Do not implement RAG indexing yet.
+Just upload, store, and extract text where possible.
+________________________________________
+Phase 7 Prompt: AI Provider Abstraction
+Continue building BizMate AI.
+
+Now create the AI provider abstraction layer.
+
+The system must support two AI operation modes:
+1. Offline/local AI mode.
+2. API-based AI mode.
+
+Do not lock the project into one AI provider.
+
+Create an ai_providers module with a common interface.
+
+Required interface:
+
+class BaseLLMProvider:
+    generate_response(prompt: str, system_prompt: str = None) -> str
+
+class BaseEmbeddingProvider:
+    embed_text(text: str) -> list[float]
+    embed_batch(texts: list[str]) -> list[list[float]]
+
+Implement provider options:
+
+1. Local Ollama provider
+- For generation: use Ollama chat/generate endpoint.
+- For embeddings: use Ollama embedding model if configured.
+- Configurable through .env:
+  AI_MODE=local
+  OLLAMA_BASE_URL=http://localhost:11434
+  OLLAMA_LLM_MODEL=
+  OLLAMA_EMBED_MODEL=
+
+2. API provider placeholder
+- Build a generic structure for API-based LLMs.
+- Add support for at least one provider if easy, such as OpenAI-compatible, Groq, Gemini, or OpenRouter.
+- Configurable through .env:
+  AI_MODE=api
+  AI_API_PROVIDER=
+  AI_API_KEY=
+  AI_API_BASE_URL=
+  AI_LLM_MODEL=
+  AI_EMBED_MODEL=
+
+3. Fallback mock provider
+- Used for testing if no AI key or local model is available.
+- Returns simple deterministic responses for development.
+
+Tasks:
+1. Create provider factory.
+2. Create clear provider interfaces.
+3. Add environment-based provider selection.
+4. Add error handling when provider is unavailable.
+5. Add test route:
+   POST /ai/test-generate
+   POST /ai/test-embed
+6. Document how to switch between local and API mode.
+
+Important:
+Do not build RAG yet.
+This phase only creates the flexible AI provider system.
+________________________________________
+Phase 8 Prompt: RAG Indexing Pipeline
+Continue building BizMate AI.
+
+Now implement the RAG indexing pipeline.
+
+The goal is to convert each business's products, services, FAQs, profile information, and uploaded documents into searchable vector data.
+
+Use ChromaDB or FAISS as the vector database.
+Choose the simpler and more stable option for this project.
+Make the vector store modular so it can be changed later.
+
+Tasks:
+1. Create rag module.
+2. Create text conversion functions for:
+   - business profile
+   - products
+   - services
+   - FAQs
+   - documents
+
+Example product text:
+Product: HP EliteBook 840 G6.
+Category: Laptop.
+Price: GHS 4,200.
+Availability: Available.
+Quantity: 5.
+Warranty: 3 months.
+Description: Core i5, 8GB RAM, 256GB SSD.
+
+Example FAQ text:
+Question: Do you deliver?
+Answer: Yes, we deliver within Kumasi. Delivery fee starts from GHS 15.
+
+3. Create chunking function:
+   - Product and service can be one chunk each.
+   - FAQ can be one chunk each.
+   - Documents should be split into chunks of 300–500 words.
+
+4. Create metadata for each chunk:
+   - business_id
+   - source_type
+   - source_id
+   - title
+   - created_at
+   - updated_at
+
+5. Generate embeddings using the selected embedding provider.
+6. Store chunks and embeddings in vector database.
+7. Implement function:
+   index_business_data(business_id)
+
+8. Implement function:
+   delete_business_index(business_id)
+
+9. Implement endpoint:
+   POST /businesses/{business_id}/rag/reindex
+
+10. When reindexing:
+   - Delete old vectors for that business.
+   - Rebuild all vectors from current data.
+
+11. Add logs for indexing process.
+
+Important:
+The RAG index must separate data by business_id.
+A customer chatting with one business must never retrieve another business's data.
+________________________________________
+Phase 9 Prompt: RAG Retrieval and AI Chat Engine
+Continue building BizMate AI.
+
+Now implement the customer AI chat engine using RAG.
+
+Backend endpoint:
+
+POST /chat/{business_id}
+
+Request:
+{
+  "message": "Do you have HP laptops?",
+  "customer_name": "optional",
+  "customer_phone": "optional",
+  "channel": "web"
+}
+
+Response:
+{
+  "answer": "...",
+  "confidence_score": 0.87,
+  "sources": [],
+  "escalated": false
+}
+
+Chat flow:
+1. Receive customer message.
+2. Create or continue chat session.
+3. Check if customer wants human support.
+4. Convert question into embedding.
+5. Retrieve top relevant chunks from vector database for the specific business_id.
+6. Calculate confidence score based on retrieval similarity.
+7. If confidence is low, return a safe fallback answer.
+8. If confidence is acceptable, build a prompt with retrieved context.
+9. Generate answer using selected LLM provider.
+10. Save customer message and AI answer in chat history.
+11. Return answer to customer.
+
+Prompt rules:
+The AI must:
+- Act as a polite customer support assistant.
+- Answer only using the provided business context.
+- Never invent prices, products, services, discounts, or availability.
+- If information is missing, say it does not have that information.
+- Keep responses short and useful.
+- Ask a helpful follow-up question when appropriate.
+- Escalate to human if needed.
+
+Confidence logic:
+- If top score is below threshold, do not generate a confident answer.
+- Use env variable:
+  RAG_CONFIDENCE_THRESHOLD=0.50
+
+Human handoff detection:
+Detect messages like:
+- human
+- agent
+- staff
+- call me
+- I want to talk to someone
+- manager
+
+If detected:
+- create escalation record
+- return a handoff response
+
+Also handle sensitive categories:
+For pharmacies, do not give medical diagnosis or prescriptions.
+For legal/business-sensitive questions, avoid giving legal advice.
+
+Important:
+Make sure chat history is stored in the database.
+Make sure retrieval only uses the selected business_id.
+________________________________________
+Phase 10 Prompt: Customer Web Chat Interface
+Continue building BizMate AI.
+
+Now build the customer-facing web chat interface.
+
+The goal is to allow customers to chat with a specific business's AI assistant.
+
+Frontend route examples:
+- /b/[businessId]/chat
+- /chat/[businessId]
+
+Features:
+1. Show business name, category, and location at the top.
+2. Show welcome message:
+   "Welcome to [Business Name]. Ask me about our products, services, prices, opening hours, or location."
+
+3. Chat UI:
+   - customer message bubble
+   - AI response bubble
+   - loading indicator
+   - input box
+   - send button
+   - enter-to-send
+
+4. Connect to backend:
+   POST /chat/{business_id}
+
+5. Handle errors:
+   - backend offline
+   - AI unavailable
+   - no business found
+   - empty message
+
+6. Add sample questions:
+   - Do you have HP laptops?
+   - What are your opening hours?
+   - Do you deliver?
+   - Where are you located?
+
+7. Make it mobile responsive.
+8. Make it look clean and simple.
+
+Backend additions:
+1. Public endpoint to fetch business basic profile:
+   GET /public/businesses/{business_id}
+
+This should return:
+- business_name
+- category
+- location
+- opening_hours
+- description
+
+Important:
+Customers do not need to log in.
+Do not expose private business owner data.
+________________________________________
+Phase 11 Prompt: Business Dashboard Chat Testing and History
+Continue building BizMate AI.
+
+Now improve the business owner dashboard with AI testing and chat history.
+
+Business owner should be able to test the AI assistant before sharing it with customers.
+
+Frontend pages:
+
+1. AI Test Page
+- Business owner selects active business.
+- Chat interface similar to customer chat.
+- Button: "Test Assistant"
+- Show retrieved confidence score.
+- Optionally show source chunks used by the AI.
+
+2. Chat History Page
+- List customer chat sessions.
+- Show:
+  - customer name or anonymous
+  - channel
+  - latest message
+  - date/time
+  - escalation status
+
+3. Chat Session Detail Page
+- Show full conversation.
+- Show confidence scores.
+- Show whether the AI escalated.
+- Show channel: web, WhatsApp, voice, test.
+
+Backend endpoints:
+GET /businesses/{business_id}/chat-sessions
+GET /chat-sessions/{session_id}
+GET /businesses/{business_id}/escalations
+PUT /escalations/{escalation_id}
+
+Rules:
+1. Only business owner, staff, or admin can view chat history.
+2. Customers cannot access dashboard history.
+3. AI test chats can be marked with channel = test.
+4. Keep UI clean and practical.
+
+Important:
+This phase makes the project feel like a real business platform, not just a chatbot.
+________________________________________
+Phase 12 Prompt: CSV Import and Bulk Product Upload
+Continue building BizMate AI.
+
+Now add CSV import for bulk products and FAQs.
+
+Business owners should be able to upload a CSV file instead of adding every item manually.
+
+CSV product format:
+name,category,description,price,currency,quantity,availability_status,warranty
+
+CSV FAQ format:
+question,answer
+
+Backend endpoints:
+POST /businesses/{business_id}/products/import-csv
+POST /businesses/{business_id}/faqs/import-csv
+
+Tasks:
+1. Validate CSV headers.
+2. Validate required fields.
+3. Skip empty rows.
+4. Return import summary:
+   - total rows
+   - successful rows
+   - failed rows
+   - errors
+
+5. Save valid products or FAQs to database.
+6. After successful import, optionally trigger reindexing.
+7. Add parameter:
+   reindex_after_import=true or false
+
+Frontend tasks:
+1. Add CSV upload component on Products page.
+2. Add CSV upload component on FAQ page.
+3. Provide downloadable CSV template buttons.
+4. Show import results clearly.
+5. Show row-level errors when import fails.
+
+Important:
+Do not allow bad CSV data to crash the system.
+Make it business-owner friendly.
+________________________________________
+Phase 13 Prompt: Voice Input Support
+Continue building BizMate AI.
+
+Now add basic voice input support.
+
+For the final-year MVP, implement voice-to-text first.
+The AI can still reply in text.
+
+Customer flow:
+1. Customer clicks microphone button.
+2. Customer speaks a question.
+3. Browser records audio.
+4. Audio is sent to backend.
+5. Backend converts speech to text.
+6. Text is sent to existing /chat/{business_id} flow.
+7. AI response is returned as text.
+
+Backend endpoint:
+POST /voice/transcribe
+or
+POST /chat/{business_id}/voice
+
+Support both AI modes:
+1. Offline/local speech-to-text:
+   - Use Whisper locally if available.
+   - Or use faster-whisper if suitable.
+2. API-based speech-to-text:
+   - Use configured provider if available.
+
+Create a speech provider abstraction like the AI provider abstraction:
+BaseSpeechToTextProvider:
+    transcribe(audio_file) -> str
+
+Frontend tasks:
+1. Add microphone button to customer chat.
+2. Show recording state.
+3. Allow stop recording.
+4. Send audio to backend.
+5. Show transcribed text before sending or send directly.
+6. Handle microphone permission errors.
+
+Important:
+If voice support becomes too complex, implement the frontend microphone UI and backend placeholder clearly.
+Do not break the existing text chat.
+________________________________________
+Phase 14 Prompt: WhatsApp Integration or WhatsApp Simulation
+Continue building BizMate AI.
+
+Now add WhatsApp support or WhatsApp simulation.
+
+The system should support two modes:
+1. Real WhatsApp Cloud API integration.
+2. Simulated WhatsApp-style chat for final-year demo if real API credentials are not available.
+
+Make this configurable through environment variables:
+WHATSAPP_MODE=disabled | simulation | cloud_api
+
+For real WhatsApp Cloud API:
+
+Backend endpoints:
+GET /webhooks/whatsapp
+- for webhook verification
+
+POST /webhooks/whatsapp
+- receives incoming messages
+
+Flow:
+1. Customer sends message to business WhatsApp.
+2. WhatsApp sends webhook to backend.
+3. Backend identifies the business by phone number mapping.
+4. Backend sends message to RAG chat engine.
+5. AI generates response.
+6. Backend sends reply back through WhatsApp Cloud API.
+7. Save chat history with channel = whatsapp.
+
+Environment variables:
+WHATSAPP_VERIFY_TOKEN=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_BUSINESS_NUMBER=
+
+For simulation mode:
+1. Create a WhatsApp-like chat page.
+2. Use green-style message bubbles.
+3. Simulate customer and AI messages.
+4. Still use the real backend RAG chat endpoint.
+5. Mark channel = whatsapp_simulation.
+
+Frontend tasks:
+1. Add dashboard page explaining WhatsApp status.
+2. Add test WhatsApp simulation button.
+3. Add WhatsApp-style customer chat page.
+
+Important:
+Do not require real WhatsApp credentials for the project to run.
+The system must work in simulation mode for demonstration.
+________________________________________
+Phase 15 Prompt: Testing, Evaluation, Deployment, and Documentation
+Finalize BizMate AI.
+
+Now add testing, evaluation, deployment preparation, and documentation.
+
+Testing tasks:
+1. Add backend unit tests for:
+   - authentication
+   - business CRUD
+   - product CRUD
+   - FAQ CRUD
+   - RAG indexing
+   - chat response flow
+
+2. Add frontend basic tests if practical.
+
+3. Add manual test scripts:
+   - create business
+   - add products
+   - add FAQs
+   - reindex business
+   - ask customer questions
+   - check chat history
+   - test low-confidence question
+   - test human handoff
+
+Evaluation module:
+Create a simple evaluation script that tests the AI on sample questions.
+
+Sample evaluation fields:
+- question
+- expected_answer_keywords
+- actual_answer
+- retrieval_score
+- response_time
+- passed
+
+Metrics:
+1. Response accuracy
+2. Retrieval accuracy
+3. Response time
+4. Hallucination rate
+5. Human handoff correctness
+
+Create sample businesses:
+1. MelTech Computers
+2. Grace Academy
+3. Akwaaba Restaurant
+
+Add sample data for each business.
+
+Deployment tasks:
+1. Add Dockerfile for backend.
+2. Add Dockerfile for frontend.
+3. Add docker-compose.yml with:
+   - frontend
+   - backend
+   - postgres
+   - vector db storage
+4. Add environment variable documentation.
+5. Add production deployment notes for VPS.
+
+Documentation:
+Update README.md with:
+1. Project overview
+2. Features
+3. Tech stack
+4. Setup instructions
+5. Running backend
+6. Running frontend
+7. Database migration
+8. Choosing AI mode:
+   - local/offline AI
+   - API-based AI
+9. RAG explanation
+10. Screenshots placeholder
+11. Future improvements
+
+Final check:
+1. The project should run locally.
+2. The business dashboard should work.
+3. Products, services, FAQs, and documents should work.
+4. RAG indexing should work.
+5. Customer chat should work.
+6. AI provider should be configurable.
+7. WhatsApp should work in simulation mode even without credentials.
+8. Voice input should not break text chat.
+________________________________________
+Recommended Order to Build
+Use the prompts exactly in this order:
+1. Project Setup and Architecture
+2. Database Design and Backend Models
+3. Authentication and User Management
+4. Business Profile Management
+5. Product and Service Management
+6. FAQ and Document Upload System
+7. AI Provider Abstraction
+8. RAG Indexing Pipeline
+9. RAG Retrieval and AI Chat Engine
+10. Customer Web Chat Interface
+11. Business Dashboard Chat Testing and History
+12. CSV Import and Bulk Product Upload
+13. Voice Input Support
+14. WhatsApp Integration or WhatsApp Simulation
+15. Testing, Evaluation, Deployment, and Documentation
+________________________________________
+Important Instruction to Add Before Every Prompt
+When giving each prompt to the agentic IDE, add this line at the top:
+Before making changes, inspect the existing project structure and continue from the current codebase. Do not rewrite working code unnecessarily. Keep the code modular, clean, and production-minded.
+________________________________________
+Best Final-Year Build Scope
+For your final-year project, I recommend you complete these fully:
+Phase 1 to Phase 12
+Then add simplified versions of:
+Phase 13: Voice input
+Phase 14: WhatsApp simulation
+Phase 15: Testing and documentation
+That gives you a strong, complete project without overloading yourself.
+The real startup version can later expand the WhatsApp, voice, local language, payment, and analytics features.
+

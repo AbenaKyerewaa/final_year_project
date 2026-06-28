@@ -1,0 +1,35 @@
+[
+  {
+    "text": "Business Name: Manual Flow Cafe 7779\nCategory: Food & Beverage\nLocation: Accra Mall\nPhone Contact: +233240001111\nWhatsApp Contact: +233240001111\nOpening Hours: Mon-Sun: 8AM - 10PM\nAccepted Payment Methods: Mobile Money, Cash\nDelivery Options: Local Delivery\nAbout Business / Description: Artisanal coffee and fresh pastries in the heart of Accra.",
+    "metadata": {
+      "business_id": "88bfeee2-2b14-487f-aa52-b6a8fb2e1cfd",
+      "source_type": "profile",
+      "source_id": "88bfeee2-2b14-487f-aa52-b6a8fb2e1cfd",
+      "title": "Business Profile",
+      "created_at": "2026-06-25T02:15:39",
+      "updated_at": "2026-06-25T02:15:39"
+    }
+  },
+  {
+    "text": "Product: Iced Vanilla Latte.\nCategory: Beverages.\nPrice: GHS 25.00.\nAvailability: Available.\nQuantity in Stock: 30.\nWarranty: None.\nDescription: Double espresso shot with fresh cold milk and organic vanilla syrup..",
+    "metadata": {
+      "business_id": "88bfeee2-2b14-487f-aa52-b6a8fb2e1cfd",
+      "source_type": "product",
+      "source_id": "ef20851a-58c3-443e-aee6-3b36a55c608f",
+      "title": "Iced Vanilla Latte",
+      "created_at": "2026-06-25T02:15:41",
+      "updated_at": "2026-06-25T02:15:41"
+    }
+  },
+  {
+    "text": "Question: Where is the cafe located exactly?\nAnswer: We are located on the ground floor of Accra Mall, right next to the main entrance.",
+    "metadata": {
+      "business_id": "88bfeee2-2b14-487f-aa52-b6a8fb2e1cfd",
+      "source_type": "faq",
+      "source_id": "906c1f10-cea1-44af-a3da-1763b1dd2bb4",
+      "title": "Where is the cafe located exactly?",
+      "created_at": "2026-06-25T02:15:43",
+      "updated_at": "2026-06-25T02:15:43"
+    }
+  }
+]
