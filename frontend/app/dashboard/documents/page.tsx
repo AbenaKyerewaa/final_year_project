@@ -158,7 +158,7 @@ export default function DocumentManagement() {
     }
     if (s === 'failed') {
       return (
-        <span className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-semibold bg-rose-955/50 text-rose-455 border border-rose-900/40">
+        <span className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-semibold bg-rose-950/50 text-rose-500 border border-rose-900/40">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
           Failed
         </span>
@@ -184,15 +184,15 @@ export default function DocumentManagement() {
   // 2. Zero-state business context warning
   if (!activeBusiness) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/10 gap-5 max-w-xl mx-auto mt-10">
-        <div className="w-14 h-14 rounded-2xl bg-amber-955/20 text-amber-500 border border-amber-900/30 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/10 gap-5 max-w-xl mx-auto mt-10">
+        <div className="w-14 h-14 rounded-2xl bg-amber-950/20 text-amber-500 border border-amber-900/30 flex items-center justify-center">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-lg font-bold text-slate-200">No Active Business Selected</h3>
-          <p className="text-xs text-slate-450 leading-relaxed max-w-sm">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Active Business Selected</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
             Please register or select an active business profile from the sidebar console before managing documents.
           </p>
         </div>
@@ -210,16 +210,16 @@ export default function DocumentManagement() {
     <div className="flex flex-col gap-6">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Document Knowledge Base</h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Document Knowledge Base</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Upload text documents, FAQs, inventory lists, or guides to act as the raw intelligence of your AI Agent under <span className="text-blue-400 font-semibold">{activeBusiness.business_name}</span>.
           </p>
         </div>
         <button
           onClick={() => fetchDocuments(true)}
-          className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-850 hover:border-slate-800 bg-slate-950/20 text-slate-300 hover:text-white transition flex items-center gap-1.5 self-start sm:self-center"
+          className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20 text-slate-700 dark:text-slate-300 hover:text-white transition flex items-center gap-1.5 self-start sm:self-center"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3m0 0l3 3m-3-3v12" />
@@ -230,14 +230,14 @@ export default function DocumentManagement() {
 
       {/* Success alert */}
       {successMsg && (
-        <div className="p-3 text-xs text-emerald-450 bg-emerald-950/30 border border-emerald-900/50 rounded-lg animate-fade-in">
+        <div className="p-3 text-xs text-emerald-400 bg-emerald-950/30 border border-emerald-900/50 rounded-lg animate-fade-in">
           <span className="font-semibold">Success:</span> {successMsg}
         </div>
       )}
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 text-xs text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
@@ -263,7 +263,7 @@ export default function DocumentManagement() {
         />
 
         <div className={`w-12 h-12 rounded-xl border flex items-center justify-center transition duration-300 ${
-          uploading ? 'bg-blue-955/20 text-blue-500 border-blue-900/30 animate-pulse' : 'bg-slate-900 border-slate-800 text-slate-400'
+          uploading ? 'bg-blue-950/20 text-blue-500 border-blue-900/30 animate-pulse' : 'bg-slate-900 border-slate-800 text-slate-400'
         }`}>
           {uploading ? (
             <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -277,7 +277,7 @@ export default function DocumentManagement() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-semibold text-slate-200">
+          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
             {uploading ? 'Uploading your document...' : 'Drag & drop your document here, or click to browse'}
           </p>
           <p className="text-[10px] text-slate-500">
@@ -289,7 +289,7 @@ export default function DocumentManagement() {
           <button 
             type="button" 
             onClick={onButtonClick}
-            className="px-4 py-2 rounded-lg text-[11px] font-bold bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-200 transition"
+            className="px-4 py-2 rounded-lg text-[11px] font-bold bg-slate-900 hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-slate-700 text-slate-800 dark:text-slate-200 transition"
           >
             Choose File
           </button>
@@ -298,17 +298,17 @@ export default function DocumentManagement() {
 
       {/* Documents List */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-bold text-slate-300">Uploaded Knowledge Bases</h3>
+        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Uploaded Knowledge Bases</h3>
         
         {loading && documents.length === 0 ? (
           <div className="flex justify-center py-12">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : documents.length > 0 ? (
-          <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-950/10 backdrop-blur-md shadow-lg">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/10 backdrop-blur-md shadow-lg">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
                   <th className="py-4 px-6">Document Name</th>
                   <th className="py-4 px-6 text-center">Format</th>
                   <th className="py-4 px-6">Upload Date</th>
@@ -316,10 +316,10 @@ export default function DocumentManagement() {
                   <th className="py-4 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-900/50">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-900/50">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-slate-950/30 transition duration-150">
-                    <td className="py-4 px-6 font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">
+                  <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition duration-150">
+                    <td className="py-4 px-6 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-xs">
                       {doc.file_name}
                     </td>
                     <td className="py-4 px-6 text-center">
@@ -327,7 +327,7 @@ export default function DocumentManagement() {
                         {doc.file_type.substring(1)}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-slate-400">
+                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
                       {new Date(doc.created_at).toLocaleDateString(undefined, {
                         year: 'numeric',
                         month: 'short',
@@ -344,14 +344,14 @@ export default function DocumentManagement() {
                         {doc.processed_status === 'processed' && (
                           <button
                             onClick={() => setPreviewDoc(doc)}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900/40 text-slate-300 hover:text-white transition font-semibold"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-slate-700 bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:text-white transition font-semibold"
                           >
                             Preview Text
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(doc.id, doc.file_name)}
-                          className="p-1.5 rounded-lg border border-slate-800 hover:border-rose-900/60 bg-slate-900/40 text-slate-400 hover:text-rose-455 transition"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rose-900/60 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition"
                           title="Delete Document"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -366,15 +366,15 @@ export default function DocumentManagement() {
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/10 gap-4">
-            <div className="w-12 h-12 rounded-xl bg-slate-900 text-slate-500 border border-slate-800 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/10 gap-4">
+            <div className="w-12 h-12 rounded-xl bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div className="flex flex-col gap-1">
-              <h4 className="text-sm font-semibold text-slate-350">No Documents Uploaded</h4>
-              <p className="text-xs text-slate-550 max-w-xs">Upload FAQs list, catalogs, or business profiles to act as local vector references for AI chat queries.</p>
+              <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-350">No Documents Uploaded</h4>
+              <p className="text-xs text-slate-500 max-w-xs">Upload FAQs list, catalogs, or business profiles to act as local vector references for AI chat queries.</p>
             </div>
           </div>
         )}
@@ -383,12 +383,12 @@ export default function DocumentManagement() {
       {/* Extracted Text Preview Modal Dialog */}
       {previewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-2xl max-h-[85vh] rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-2xl flex flex-col gap-4 animate-zoom-in">
+          <div className="w-full max-w-2xl max-h-[85vh] rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 p-6 shadow-2xl flex flex-col gap-4 animate-zoom-in">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-900 pb-3">
               <div className="flex items-center gap-2.5">
-                <h3 className="text-base font-extrabold text-white truncate max-w-md">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate max-w-md">
                   Extracted Text: {previewDoc.file_name}
                 </h3>
                 <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-bold border ${getBadgeColor(previewDoc.file_type)}`}>
@@ -397,7 +397,7 @@ export default function DocumentManagement() {
               </div>
               <button 
                 onClick={() => setPreviewDoc(null)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-500 dark:text-slate-400 hover:text-white"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -406,7 +406,7 @@ export default function DocumentManagement() {
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto bg-slate-900/60 p-4 rounded-xl border border-slate-900 text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap max-h-[55vh]">
+            <div className="flex-1 overflow-y-auto bg-slate-900/60 p-4 rounded-xl border border-slate-900 text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap max-h-[55vh]">
               {previewDoc.extracted_text ? previewDoc.extracted_text : (
                 <span className="text-slate-500 italic">No text extracted or document is empty.</span>
               )}

@@ -160,8 +160,23 @@ export default function FAQManagement() {
 
   const downloadFAQTemplate = () => {
     const headers = "question,answer\n";
-    const row1 = "Do you accept Mobile Money (MoMo)?,Yes we accept MoMo payments on MTN and Telecel.\n";
-    const row2 = "Do you deliver to Accra?,Yes we ship nationwide via VIP Bus or OA Travel.\n";
+    let row1 = "Do you accept Mobile Money (MoMo)?,Yes we accept MoMo payments on MTN and Telecel.\n";
+    let row2 = "Do you deliver to Accra?,Yes we ship nationwide via VIP Bus or OA Travel.\n";
+    
+    if (activeBusiness) {
+      const category = (activeBusiness.category || "").toLowerCase();
+      if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+        row1 = "What curriculum do you run?,We run the GES standards curriculum integrated with modern international teaching methodologies.\n";
+        row2 = "Do you offer school bus transport?,Yes we provide school bus pickup for GHS 350 per month.\n";
+      } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+        row1 = "What is on the menu?,We serve authentic Ghanaian Jollof Fufu Banku and Kelewele.\n";
+        row2 = "Do you deliver food?,Yes we deliver to Osu Cantonments and Labone for GHS 25.\n";
+      } else if (category.includes("pharmacy") || category.includes("dispensary") || category.includes("medical") || category.includes("clinic")) {
+        row1 = "Do you require a prescription for all medications?,We only require prescriptions for controlled substances and antibiotics. General painkillers or vitamins can be purchased over the counter.\n";
+        row2 = "Do you offer home delivery for drugs?,Yes we offer door-to-door delivery within Accra for a flat rate of GHS 15 or free for orders above GHS 200.\n";
+      }
+    }
+    
     const blob = new Blob([headers + row1 + row2], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -185,15 +200,15 @@ export default function FAQManagement() {
   // 2. Zero-state business context warning
   if (!activeBusiness) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/10 gap-5 max-w-xl mx-auto mt-10">
-        <div className="w-14 h-14 rounded-2xl bg-amber-955/20 text-amber-500 border border-amber-900/30 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/10 gap-5 max-w-xl mx-auto mt-10">
+        <div className="w-14 h-14 rounded-2xl bg-amber-950/20 text-amber-500 border border-amber-900/30 flex items-center justify-center">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-lg font-bold text-slate-200">No Active Business Selected</h3>
-          <p className="text-xs text-slate-450 leading-relaxed max-w-sm">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Active Business Selected</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
             Please register or select an active business profile from the sidebar console before managing FAQs.
           </p>
         </div>
@@ -211,10 +226,10 @@ export default function FAQManagement() {
     <div className="flex flex-col gap-6">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Frequently Asked Questions</h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Frequently Asked Questions</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Setup common questions and responses for customers, loaded dynamically by the chatbot for <span className="text-blue-400 font-semibold">{activeBusiness.business_name}</span>.
           </p>
         </div>
@@ -235,33 +250,33 @@ export default function FAQManagement() {
 
       {/* Error alert */}
       {error && !isModalOpen && (
-        <div className="p-3 text-xs text-rose-400 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-400 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
 
       {/* CSV Import Panel */}
-      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/10 backdrop-blur-xl shadow-lg p-5 flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-slate-850 pb-3 cursor-pointer select-none" onClick={() => setShowImportPanel(!showImportPanel)}>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-900/10 backdrop-blur-xl shadow-lg p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 cursor-pointer select-none" onClick={() => setShowImportPanel(!showImportPanel)}>
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-405" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            <h3 className="text-sm font-bold text-slate-200">Bulk Import FAQs (CSV)</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Bulk Import FAQs (CSV)</h3>
           </div>
-          <span className="text-xs text-slate-500 hover:text-slate-350 font-medium">
+          <span className="text-xs text-slate-500 hover:text-slate-600 dark:text-slate-350 font-medium">
             {showImportPanel ? "Collapse [-]" : "Expand [+]"}
           </span>
         </div>
 
         {showImportPanel && (
           <div className="flex flex-col gap-4 mt-2">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs bg-slate-950/40 p-3 rounded-lg border border-slate-900/60">
-              <span className="text-slate-400">Download the default FAQs template format:</span>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs bg-slate-100 dark:bg-slate-950/40 p-3 rounded-lg border border-slate-900/60">
+              <span className="text-slate-500 dark:text-slate-400">Download the default FAQs template format:</span>
               <button
                 type="button"
                 onClick={downloadFAQTemplate}
-                className="px-3.5 py-1.5 rounded bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-300 font-semibold cursor-pointer transition text-xs shrink-0"
+                className="px-3.5 py-1.5 rounded bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-700 hover:text-white text-slate-700 dark:text-slate-300 font-semibold cursor-pointer transition text-xs shrink-0"
               >
                 Download CSV Template
               </button>
@@ -278,7 +293,7 @@ export default function FAQManagement() {
                     setImportSummary(null);
                   }
                 }}
-                className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600/30 file:cursor-pointer cursor-pointer"
+                className="text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600/30 file:cursor-pointer cursor-pointer"
               />
             </div>
 
@@ -288,9 +303,9 @@ export default function FAQManagement() {
                 id="reindex_faq_chk"
                 checked={reindexAfterImport}
                 onChange={(e) => setReindexAfterImport(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-800 bg-slate-950/40 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                className="w-4 h-4 rounded border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
               />
-              <label htmlFor="reindex_faq_chk" className="text-xs text-slate-400 select-none cursor-pointer">
+              <label htmlFor="reindex_faq_chk" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer">
                 Rebuild search index immediately after successful import
               </label>
             </div>
@@ -313,26 +328,26 @@ export default function FAQManagement() {
 
             {importSummary && (
               <div className="mt-4 border-t border-slate-900/60 pt-4 flex flex-col gap-3 text-xs">
-                <h4 className="font-bold text-slate-200 uppercase tracking-wider text-[10px]">Import Results Summary:</h4>
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[10px]">Import Results Summary:</h4>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-slate-950/40 border border-slate-900/60 p-2.5 rounded-lg flex flex-col items-center">
+                  <div className="bg-slate-100 dark:bg-slate-950/40 border border-slate-900/60 p-2.5 rounded-lg flex flex-col items-center">
                     <span className="text-[10px] text-slate-500 uppercase font-semibold">Total Rows</span>
-                    <span className="text-lg font-extrabold text-slate-200 mt-1">{importSummary.total_rows}</span>
+                    <span className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-1">{importSummary.total_rows}</span>
                   </div>
-                  <div className="bg-emerald-955/10 border border-emerald-900/30 p-2.5 rounded-lg flex flex-col items-center">
+                  <div className="bg-emerald-950/10 border border-emerald-900/30 p-2.5 rounded-lg flex flex-col items-center">
                     <span className="text-[10px] text-emerald-500/70 uppercase font-semibold">Successful</span>
-                    <span className="text-lg font-extrabold text-emerald-450 mt-1">{importSummary.successful_rows}</span>
+                    <span className="text-lg font-extrabold text-emerald-400 mt-1">{importSummary.successful_rows}</span>
                   </div>
-                  <div className="bg-rose-955/10 border border-rose-900/30 p-2.5 rounded-lg flex flex-col items-center">
+                  <div className="bg-rose-950/10 border border-rose-900/30 p-2.5 rounded-lg flex flex-col items-center">
                     <span className="text-[10px] text-rose-500/70 uppercase font-semibold">Failed</span>
-                    <span className="text-lg font-extrabold text-rose-455 mt-1">{importSummary.failed_rows}</span>
+                    <span className="text-lg font-extrabold text-rose-500 mt-1">{importSummary.failed_rows}</span>
                   </div>
                 </div>
 
                 {importSummary.errors.length > 0 && (
                   <div className="flex flex-col gap-2 mt-2">
-                    <span className="text-rose-450 font-bold">Row-level errors / warnings:</span>
-                    <div className="bg-rose-955/5 border border-rose-900/20 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-[11px] text-rose-355 leading-relaxed space-y-1">
+                    <span className="text-rose-500 font-bold">Row-level errors / warnings:</span>
+                    <div className="bg-rose-950/5 border border-rose-900/20 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-[11px] text-rose-300 leading-relaxed space-y-1">
                       {importSummary.errors.map((err: string, eIdx: number) => (
                         <div key={eIdx}>• {err}</div>
                       ))}
@@ -366,7 +381,7 @@ export default function FAQManagement() {
                   onClick={() => toggleAccordion(faq.id)}
                   className="flex items-center justify-between p-5 cursor-pointer select-none gap-4"
                 >
-                  <h3 className="text-sm font-bold text-slate-100 hover:text-blue-400 transition duration-150 pr-4">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 hover:text-blue-400 transition duration-150 pr-4">
                     {faq.question}
                   </h3>
                   <div className="flex items-center gap-3 shrink-0">
@@ -376,7 +391,7 @@ export default function FAQManagement() {
                         e.stopPropagation();
                         handleOpenEditModal(faq);
                       }}
-                      className="p-1.5 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900/40 text-slate-400 hover:text-white transition"
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-slate-700 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-white transition"
                       title="Edit FAQ"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -388,7 +403,7 @@ export default function FAQManagement() {
                         e.stopPropagation();
                         handleDeleteFaq(faq.id, faq.question);
                       }}
-                      className="p-1.5 rounded-lg border border-slate-800 hover:border-rose-900/60 bg-slate-900/40 text-slate-400 hover:text-rose-455 transition"
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rose-900/60 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition"
                       title="Delete FAQ"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -398,7 +413,7 @@ export default function FAQManagement() {
                     
                     {/* Chevron Indicator */}
                     <svg 
-                      className={`w-4 h-4 text-slate-400 transition-transform duration-350 ${isOpen ? 'rotate-180 text-blue-450' : ''}`}
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-350 ${isOpen ? 'rotate-180 text-blue-400' : ''}`}
                       fill="none" 
                       viewBox="0 0 24 24" 
                       stroke="currentColor"
@@ -414,7 +429,7 @@ export default function FAQManagement() {
                     isOpen ? 'max-h-[800px] border-t border-slate-900/60 p-5 bg-slate-950/10' : 'max-h-0'
                   }`}
                 >
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                     {faq.answer}
                   </p>
                 </div>
@@ -423,14 +438,14 @@ export default function FAQManagement() {
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/10 gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 text-slate-500 border border-slate-800 flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/10 gap-4">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div className="flex flex-col gap-1">
-            <h4 className="text-sm font-semibold text-slate-350">No FAQs Added</h4>
+            <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-350">No FAQs Added</h4>
             <p className="text-xs text-slate-500">Add common queries to build a database of precise instant-replies.</p>
           </div>
           <button
@@ -445,16 +460,16 @@ export default function FAQManagement() {
       {/* Add / Edit Modal Dialog */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-2xl flex flex-col gap-4 animate-zoom-in">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 p-6 shadow-2xl flex flex-col gap-4 animate-zoom-in">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-900 pb-3">
-              <h3 className="text-base font-extrabold text-white">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                 {modalMode === 'create' ? 'Add New FAQ' : 'Edit FAQ'}
               </h3>
               <button 
                 onClick={handleCloseModal}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-500 dark:text-slate-400 hover:text-white"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -464,7 +479,7 @@ export default function FAQManagement() {
 
             {/* Modal Error */}
             {error && (
-              <div className="p-3 text-xs text-rose-450 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+              <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
                 <span className="font-semibold">Error:</span> {error}
               </div>
             )}
@@ -474,7 +489,7 @@ export default function FAQManagement() {
               
               {/* Question */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Question
                 </label>
                 <input 
@@ -482,14 +497,14 @@ export default function FAQManagement() {
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   placeholder="e.g. Do you accept mobile money payments?"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-800 bg-slate-900 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-150"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-150"
                   disabled={submitting}
                 />
               </div>
 
               {/* Answer */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Answer
                 </label>
                 <textarea 
@@ -497,7 +512,7 @@ export default function FAQManagement() {
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   placeholder="e.g. Yes, we accept MoMo on MTN (+233 24...) and Telecel. We also support standard cash on delivery."
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-800 bg-slate-900 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-150 resize-y"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-150 resize-y"
                   disabled={submitting}
                 />
               </div>
@@ -507,7 +522,7 @@ export default function FAQManagement() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-800 hover:border-slate-700 bg-slate-900/40 text-slate-300 hover:text-white transition"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 hover:border-slate-700 bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:text-white transition"
                   disabled={submitting}
                 >
                   Cancel

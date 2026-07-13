@@ -24,12 +24,42 @@ export default function ChatTest() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Suggested testing prompts
-  const testPrompts = [
-    "Do you have HP laptops?",
-    "What are your opening hours?",
-    "Do you deliver?",
-    "Where are you located?"
-  ];
+  const getTestPrompts = () => {
+    if (!activeBusiness) return ["What are your opening hours?", "Where are you located?"];
+    
+    const category = (activeBusiness.category || "").toLowerCase();
+    
+    if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+      return [
+        "What are the admission requirements?",
+        "Do you offer school bus transport?",
+        "What is the tuition fee per term?",
+        "How can I pay school fees?"
+      ];
+    } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return [
+        "What is on your menu?",
+        "Do you deliver food?",
+        "What are your opening hours?",
+        "Do you have vegan options?"
+      ];
+    } else if (category.includes("electronics") || category.includes("tech") || category.includes("computer")) {
+      return [
+        "Do you have HP laptops?",
+        "Do you do computer repairs?",
+        "What is your refund policy?",
+        "Do you have Dell laptops?"
+      ];
+    }
+    
+    // Default fallback prompts
+    return [
+      "What are your opening hours?",
+      "Where are you located?",
+      "What services do you offer?",
+      "Do you deliver?"
+    ];
+  };
 
   // Reset chat when business changes
   useEffect(() => {
@@ -107,14 +137,14 @@ export default function ChatTest() {
 
   if (!activeBusiness) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800/80 bg-slate-950/10 backdrop-blur-xl gap-4">
-        <div className="w-12 h-12 rounded-full bg-slate-900/40 text-slate-400 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800/80 bg-white dark:bg-slate-950/10 backdrop-blur-xl gap-4 shadow-sm dark:shadow-none">
+        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 flex items-center justify-center border border-slate-200 dark:border-slate-800">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <h3 className="text-lg font-bold text-slate-200">No Active Business Profile Selected</h3>
-        <p className="text-xs text-slate-450 max-w-sm leading-relaxed">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Active Business Profile Selected</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
           Please select or create an active business profile from the sidebar menu to begin testing the AI support assistant.
         </p>
       </div>
@@ -122,13 +152,13 @@ export default function ChatTest() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[450px] border border-slate-800/60 rounded-2xl bg-slate-950/20 backdrop-blur-xl overflow-hidden relative shadow-2xl">
+    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[450px] border border-slate-200 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-950/20 backdrop-blur-xl overflow-hidden relative shadow-sm dark:shadow-2xl transition-colors duration-300">
       
       {/* Simulation Header */}
-      <header className="px-6 py-4 border-b border-slate-900 bg-slate-950/40 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+      <header className="px-6 py-4 border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/40 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 transition-colors duration-300">
         <div>
-          <h2 className="text-base font-extrabold text-white">AI Assistant Simulator</h2>
-          <p className="text-xs text-slate-450 mt-0.5">Test responses, source files, and retrieval scores for <strong>{activeBusiness.business_name}</strong>.</p>
+          <h2 className="text-base font-extrabold text-slate-800 dark:text-white">AI Assistant Simulator</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Test responses, source files, and retrieval scores for <strong className="text-slate-700 dark:text-slate-300">{activeBusiness.business_name}</strong>.</p>
         </div>
         
         {sessionId && (
@@ -144,7 +174,7 @@ export default function ChatTest() {
                 }
               ]);
             }}
-            className="px-3 py-1.5 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900/30 text-slate-350 hover:text-white text-xs font-semibold active:translate-y-0.5 transition cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-100/50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white text-xs font-semibold active:translate-y-0.5 transition cursor-pointer"
           >
             Clear Session
           </button>
@@ -152,7 +182,7 @@ export default function ChatTest() {
       </header>
 
       {/* Main chat window */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-5 bg-slate-950/10">
+      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-5 bg-slate-50/50 dark:bg-slate-950/10 transition-colors duration-300">
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -162,17 +192,17 @@ export default function ChatTest() {
           >
             {/* Message Bubble */}
             <div
-              className={`rounded-2xl px-4 py-3 text-sm shadow-md leading-relaxed whitespace-pre-wrap ${
+              className={`rounded-2xl px-4 py-3 text-sm shadow-sm dark:shadow-md leading-relaxed whitespace-pre-wrap ${
                 msg.sender === 'customer'
                   ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'
               }`}
             >
               {msg.text}
             </div>
 
             {/* Diagnostics Metadata */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-550 px-1">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 px-1">
               <span>
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
@@ -180,7 +210,7 @@ export default function ChatTest() {
               {msg.sender === 'ai' && msg.confidence_score !== undefined && (
                 <>
                   <span>•</span>
-                  <span className={`font-semibold ${msg.confidence_score >= 0.5 ? 'text-emerald-450' : 'text-rose-500'}`}>
+                  <span className={`font-semibold ${msg.confidence_score >= 0.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-500'}`}>
                     Confidence Score: {msg.confidence_score.toFixed(3)}
                   </span>
                 </>
@@ -189,18 +219,18 @@ export default function ChatTest() {
 
             {/* Source documents panel */}
             {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
-              <details className="mt-2 text-[11px] text-slate-400 bg-slate-950/40 border border-slate-850 rounded-lg p-2 max-w-full w-full">
-                <summary className="cursor-pointer font-semibold text-slate-450 hover:text-slate-300 transition outline-none">
+              <details className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-lg p-2 max-w-full w-full">
+                <summary className="cursor-pointer font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 transition outline-none">
                   Inspect Retrieval Sources ({msg.sources.length})
                 </summary>
-                <div className="mt-2 space-y-2 border-t border-slate-900 pt-2 font-mono">
+                <div className="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-900 pt-2 font-mono">
                   {msg.sources.map((src, sIdx) => (
-                    <div key={sIdx} className="flex justify-between items-center bg-slate-950/60 p-1.5 rounded border border-slate-900/60 gap-4">
+                    <div key={sIdx} className="flex justify-between items-center bg-white dark:bg-slate-950/60 p-1.5 rounded border border-slate-200 dark:border-slate-900/60 gap-4 shadow-sm dark:shadow-none">
                       <div className="flex flex-col gap-0.5 truncate">
-                        <span className="text-slate-300 font-bold truncate">{src.title}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-widest">{src.source_type}</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-bold truncate">{src.title}</span>
+                        <span className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest">{src.source_type}</span>
                       </div>
-                      <span className="text-[10px] font-semibold text-blue-450 shrink-0">
+                      <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 shrink-0">
                         Score: {src.score.toFixed(3)}
                       </span>
                     </div>
@@ -213,7 +243,7 @@ export default function ChatTest() {
 
         {sending && (
           <div className="flex flex-col items-start max-w-[70%] mr-auto">
-            <div className="rounded-2xl px-4 py-3 bg-slate-900 border border-slate-850 text-slate-450 rounded-bl-none shadow-md flex items-center gap-1.5">
+            <div className="rounded-2xl px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-bl-none shadow-sm dark:shadow-md flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
@@ -226,14 +256,14 @@ export default function ChatTest() {
 
       {/* Suggested Prompts Cards (only on startup) */}
       {messages.length <= 1 && !sending && (
-        <div className="px-6 py-2 border-t border-slate-900/40 flex flex-col gap-2 bg-slate-950/20 shrink-0">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suggested test prompts</span>
+        <div className="px-6 py-2.5 border-t border-slate-202 dark:border-slate-900/40 flex flex-col gap-2 bg-slate-50 dark:bg-slate-950/20 shrink-0 transition-colors duration-300">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-405 uppercase tracking-wider">Suggested test prompts</span>
           <div className="flex flex-wrap gap-2 pb-1.5">
-            {testPrompts.map((p, idx) => (
+            {getTestPrompts().map((p, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(p)}
-                className="px-3 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-900/20 text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer"
+                className="px-3 py-1.5 text-xs rounded-lg border border-slate-202 dark:border-slate-800 bg-white dark:bg-slate-900/20 text-slate-606 dark:text-slate-350 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 transition cursor-pointer shadow-sm dark:shadow-none border-solid"
               >
                 {p}
               </button>
@@ -242,17 +272,16 @@ export default function ChatTest() {
         </div>
       )}
 
-      {/* Chat Input form */}
-      <footer className="p-4 border-t border-slate-900 bg-slate-950 shrink-0">
+      <footer className="p-4 border-t border-slate-202 dark:border-slate-900 bg-white dark:bg-slate-950 shrink-0 transition-colors duration-300">
         <div className="flex items-end gap-2 max-w-4xl mx-auto w-full">
-          <div className="flex-1 bg-slate-900/40 border border-slate-850 rounded-xl px-4 py-2 flex items-center focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
+          <div className="flex-1 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-808 rounded-xl px-4 py-2 flex items-center focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Type user message to test AI..."
               rows={1}
-              className="flex-1 bg-transparent border-0 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-0 resize-none py-1.5 leading-relaxed"
+              className="flex-1 bg-transparent border-0 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-404 dark:placeholder-slate-500 focus:outline-none focus:ring-0 resize-none py-1.5 leading-relaxed"
               style={{ maxHeight: '120px' }}
             />
           </div>

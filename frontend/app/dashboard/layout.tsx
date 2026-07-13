@@ -4,9 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/components/Providers';
+import { Sun, Moon } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, businesses, activeBusiness, setActiveBusiness } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -62,10 +65,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Route protection loading state
   if (loading || !user) {
     return (
-      <div className="flex flex-grow items-center justify-center min-h-screen bg-black text-slate-100 font-sans">
+      <div className="flex flex-grow items-center justify-center min-h-screen bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Verifying session...</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Verifying session...</p>
         </div>
       </div>
     );
@@ -85,45 +88,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-900 text-slate-100 font-sans bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300">
       
       {/* Sidebar - Desktop */}
-      <aside className="w-64 hidden lg:flex flex-col border-r border-slate-800/60 bg-slate-950/20 backdrop-blur-xl shrink-0 p-6 gap-6">
+      <aside className="w-64 hidden lg:flex flex-col border-r border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-950/20 backdrop-blur-xl shrink-0 p-6 gap-6 transition-colors duration-300">
         
-        {/* Brand Logo */}
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            EasyBiz AI
-          </span>
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-950/40 text-blue-450 border border-blue-900/30 uppercase">
-            SME
-          </span>
+        {/* Brand Logo & Theme Toggler Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">
+              EasyBiz AI
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/30 uppercase">
+              SME
+            </span>
+          </div>
+          <button
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition duration-200 active:scale-95"
+            title="Toggle Theme"
+          >
+            {resolvedTheme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-600" />}
+          </button>
         </div>
 
         {/* Business Selector dropdown */}
         <div className="flex flex-col gap-1.5 mt-2">
-          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+          <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest">
             Active Business
           </label>
           {businesses.length > 0 ? (
             <select
               value={activeBusiness?.id || ''}
               onChange={handleBusinessChange}
-              className="w-full px-3 py-2 text-xs font-semibold rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="w-full px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             >
               {businesses.map((biz) => (
-                <option key={biz.id} value={biz.id} className="bg-slate-950 text-slate-200">
+                <option key={biz.id} value={biz.id} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
                   {biz.business_name}
                 </option>
               ))}
-              <option value="create" className="bg-slate-950 text-blue-400 font-semibold">
+              <option value="create" className="bg-white dark:bg-slate-950 text-blue-600 dark:text-blue-400 font-semibold">
                 + Create New Profile
               </option>
             </select>
           ) : (
             <Link
               href="/dashboard/businesses/create"
-              className="w-full text-center px-3 py-2 text-xs font-semibold rounded-lg border border-dashed border-slate-700 hover:border-slate-500 bg-slate-950/10 text-slate-350 hover:text-white transition duration-200"
+              className="w-full text-center px-3 py-2 text-xs font-semibold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/50 dark:bg-slate-950/10 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition duration-200"
             >
               + Add Business Profile
             </Link>
@@ -141,8 +153,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.path}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition duration-200 ${
                   isActive
-                    ? 'bg-blue-950/30 text-blue-400 border border-blue-900/30 font-semibold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/30 font-semibold shadow-sm dark:shadow-none'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                 }`}
               >
                 {item.icon}
@@ -153,14 +165,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User Card footer */}
-        <div className="flex flex-col gap-3 border-t border-slate-850 pt-4 mt-auto">
+        <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 mt-auto">
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-200 truncate">{user.full_name}</span>
-            <span className="text-[10px] text-slate-450 truncate uppercase tracking-wider">{user.role}</span>
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{user.full_name}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate uppercase tracking-wider">{user.role}</span>
           </div>
           <button
             onClick={logout}
-            className="w-full py-2 px-3 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900/30 text-slate-350 hover:text-white text-xs font-semibold active:translate-y-0.5 transition duration-200"
+            className="w-full py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold active:translate-y-0.5 transition duration-200"
           >
             Logout
           </button>
@@ -171,32 +183,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex flex-col flex-grow min-w-0">
         
         {/* Header - Mobile Menu Toggler */}
-        <header className="lg:hidden w-full px-6 py-4 flex items-center justify-between border-b border-slate-800/60 bg-slate-950/20 backdrop-blur-xl z-40">
+        <header className="lg:hidden w-full px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-950/20 backdrop-blur-xl z-40 transition-colors duration-300">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">
               EasyBiz AI
             </span>
           </div>
-          <button
-            onClick={() => setMobileMenuOpen(prev => !prev)}
-            className="p-2 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-300 hover:text-white"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-              )}
-            </svg>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+              title="Toggle Theme"
+            >
+              {resolvedTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              className="p-2 rounded-lg border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                )}
+              </svg>
+            </button>
+          </div>
         </header>
 
         {/* Mobile Menu Content Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden flex flex-col border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-2xl p-6 gap-5 animate-fade-in absolute w-full left-0 z-30">
+          <div className="lg:hidden flex flex-col border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/90 backdrop-blur-2xl p-6 gap-5 animate-fade-in absolute w-full left-0 z-30 shadow-lg">
             {/* Mobile Business selector */}
             <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-widest">
+              <label className="text-[9px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-widest">
                 Active Business
               </label>
               {businesses.length > 0 ? (
@@ -206,20 +227,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     handleBusinessChange(e);
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-lg border border-slate-800 bg-slate-900/60 text-slate-200"
+                  className="w-full px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200"
                 >
                   {businesses.map((biz) => (
-                    <option key={biz.id} value={biz.id}>
+                    <option key={biz.id} value={biz.id} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
                       {biz.business_name}
                     </option>
                   ))}
-                  <option value="create">+ Create New Profile</option>
+                  <option value="create" className="bg-white dark:bg-slate-950 text-blue-600 dark:text-blue-400 font-semibold">+ Create New Profile</option>
                 </select>
               ) : (
                 <Link
                   href="/dashboard/businesses/create"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center px-3 py-2 text-xs font-semibold rounded-lg border border-slate-700 text-slate-350"
+                  className="text-center px-3 py-2 text-xs font-semibold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/10 text-slate-600 dark:text-slate-300"
                 >
                   + Add Business Profile
                 </Link>
@@ -237,7 +258,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     href={item.path}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium ${
-                      isActive ? 'bg-blue-950/20 text-blue-400' : 'text-slate-400'
+                      isActive 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40'
                     }`}
                   >
                     {item.icon}
@@ -248,17 +271,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </nav>
 
             {/* Mobile Logout / Profile info */}
-            <div className="flex items-center justify-between border-t border-slate-850 pt-4 mt-2">
+            <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 mt-2">
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-200">{user.full_name}</span>
-                <span className="text-[10px] text-slate-450 uppercase tracking-wider">{user.role}</span>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{user.full_name}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{user.role}</span>
               </div>
               <button
                 onClick={() => {
                   logout();
                   setMobileMenuOpen(false);
                 }}
-                className="py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/40 text-slate-350 text-xs font-semibold"
+                className="py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 text-xs font-semibold"
               >
                 Logout
               </button>
@@ -267,7 +290,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Children Page View */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-10">
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 transition-colors duration-300">
           {children}
         </main>
 

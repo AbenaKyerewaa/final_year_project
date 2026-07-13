@@ -11,7 +11,7 @@ from app.documents.models import Document
 
 from app.rag.chunker import prepare_business_chunks
 from app.rag.vector_store import FAISSVectorStore
-from app.ai_providers import get_embedding_provider
+from app.ai_providers import AIService
 
 def delete_business_index(business_id: uuid.UUID) -> None:
     """Deletes the vector store files and folder for a business index."""
@@ -70,8 +70,8 @@ def index_business_data(business_id: uuid.UUID, db: Session) -> dict:
     
     # 6. Generate Embeddings in batch using the active provider
     print("[RAG Indexer] Obtaining vector embeddings for chunks...")
-    embed_provider = get_embedding_provider()
-    embeddings = embed_provider.embed_batch(texts)
+    ai_service = AIService()
+    embeddings = ai_service.embed_batch(texts)
     
     # 7. Write vectors and metadata to disk
     print("[RAG Indexer] Saving vector indexes to disk...")

@@ -407,9 +407,9 @@ Use:
 For a final-year project, **ChromaDB or FAISS** is enough.
 
  AI Model
-For local development:
-- Ollama with Llama, Gemma, or Mistral
-- Sentence Transformers for embeddings
+For development:
+- Google Gemini API (or OpenAI API, Groq, etc.)
+- Fallback mock provider or Sentence Transformers for embeddings
 
 For production later:
 - OpenAI API
@@ -668,9 +668,9 @@ Simple Final-Year Version
 - **Frontend:** React, Next.js, or Angular
 - **Backend:** FastAPI
 - **Database:** PostgreSQL or Supabase
-- **Vector DB:** ChromaDB
-- **Embeddings:** Sentence Transformers
-- **LLM:** Ollama with Gemma, Llama, or Mistral
+- **Vector DB:** ChromaDB or FAISS
+- **Embeddings:** Google Gemini / Sentence Transformers
+- **LLM:** Google Gemini API / Mock Provider
 - **Deployment:** VPS or local demo
 - **Optional:** WhatsApp Cloud API later
 

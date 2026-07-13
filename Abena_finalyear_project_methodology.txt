@@ -221,12 +221,11 @@ The embedding model helps the system understand that these questions are related
 Possible embedding models:
 all-MiniLM-L6-v2
 bge-small-en
-nomic-embed-text
+text-embedding-004
 text-embedding models
-For your local final-year version, use:
-Sentence Transformers: all-MiniLM-L6-v2
-or, if using Ollama:
-nomic-embed-text
+For your embeddings, use:
+Google Gemini API (text-embedding-004)
+or local Sentence Transformers (all-MiniLM-L6-v2)
 ________________________________________
 Step 5: Vector Database Storage
 The embeddings are stored in a vector database.
@@ -296,30 +295,30 @@ Would you like the specifications for any of them?
 ________________________________________
 5. Recommended AI Stack
 For the final-year version, use a simple and reliable stack.
-Option A: Local AI Version
-This is good if you want to show that the project can run locally.
-LLM: Ollama
-Model: Gemma, Mistral, or Llama
-Embedding: nomic-embed-text or Sentence Transformers
-Vector DB: ChromaDB
+Option A: API-Based Version (Recommended)
+This is easier and gives high-quality responses.
+LLM: Google Gemini API (Default) or OpenAI/Groq
+Embedding: Gemini embeddings (text-embedding-004) or Sentence Transformers
+Vector DB: ChromaDB / FAISS
+Backend: FastAPI
+Frontend: Next.js
+Database: PostgreSQL
+Option B: Mock AI Version
+This is good if you want to test the project locally without API costs.
+LLM: Fallback Mock Provider
+Embedding: Mock Vector Generator
+Vector DB: FAISS
 Backend: FastAPI
 Frontend: Next.js or React
 Database: PostgreSQL
-Option B: API-Based Version
-This is easier and may give better responses.
-LLM: OpenAI / Gemini / Groq
-Embedding: OpenAI embeddings or Sentence Transformers
-Vector DB: ChromaDB / Supabase Vector
-Backend: FastAPI
-Frontend: Next.js
-Database: Supabase PostgreSQL
+
 My recommended final-year stack for you:
 Frontend: Next.js
 Backend: FastAPI
-Database: PostgreSQL or Supabase
-Vector DB: ChromaDB
-Embedding Model: Sentence Transformers
-LLM: Ollama with Mistral/Gemma or Groq API
+Database: PostgreSQL or SQLite
+Vector DB: FAISS
+Embedding Model: Google Gemini API / Sentence Transformers
+LLM: Google Gemini API or Groq API
 This gives you a strong AI project without making it too complicated.
 ________________________________________
 6. Database Design
@@ -767,7 +766,7 @@ FastAPI backend
 PostgreSQL database
 ChromaDB vector database
 Sentence Transformers embeddings
-Ollama or Groq for LLM response generation
+Google Gemini API or Groq for LLM response generation
 Then in your report, describe WhatsApp, voice, local language support, and MoMo payment as future expansion.
 This keeps the project realistic, impressive, and buildable.
 

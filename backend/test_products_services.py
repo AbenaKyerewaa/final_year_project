@@ -2,7 +2,7 @@ import requests
 import random
 import uuid
 
-API_URL = "http://localhost:8000"
+API_URL = "http://127.0.0.1:8000"
 
 def test_products_and_services_crud():
     print("=== STARTING PRODUCTS AND SERVICES CRUD INTEGRATION TESTS ===")

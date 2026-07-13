@@ -114,14 +114,14 @@ Start both development servers (Backend `python -m app.main` and Frontend `npm r
 1. **Create First Profile:**
    - Log in. The dashboard page will show a "No Business Profiles Found" zero-state.
    - Click "Create Business Profile" to go to `/dashboard/businesses/create`.
-   - Submit a profile (e.g. *Kojo's Tech Hub*, category *Electronics Retail*, location *Adum, Kumasi*, phone *+233241112222*).
+   - Submit a profile (e.g. *Michy's Tech Hub*, category *Electronics Retail*, location *Adum, Kumasi*, phone *+233241112222*).
    - Upon submission, you will be redirected to the Businesses page.
 2. **Verify Global Selectors:**
    - Notice that the new business is automatically marked as "Active" and displays in the sidebar header's selector dropdown.
-   - Navigate to the Dashboard home route. The Welcome card now displays full details for *Kojo's Tech Hub* instead of the zero-state.
+   - Navigate to the Dashboard home route. The Welcome card now displays full details for *Michy's Tech Hub* instead of the zero-state.
 3. **Register Additional Businesses:**
    - Go to `/dashboard/businesses` and click "+ Add New Business". Create a second profile (e.g. *Kumasi Bakery*).
-   - In the sidebar dropdown, switch between *Kojo's Tech Hub* and *Kumasi Bakery*.
+   - In the sidebar dropdown, switch between *Michy's Tech Hub* and *Kumasi Bakery*.
    - Verify that the Dashboard stats reflect the properties of whichever business is currently selected.
 4. **Edit Business Profile:**
    - On the Businesses page, click the pencil/edit icon on a profile card.

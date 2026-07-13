@@ -9,6 +9,85 @@ export default function CreateProduct() {
   const { token, activeBusiness } = useAuth();
   const router = useRouter();
 
+  const showWarranty = !activeBusiness || !(
+    activeBusiness.category.toLowerCase().includes("school") ||
+    activeBusiness.category.toLowerCase().includes("education") ||
+    activeBusiness.category.toLowerCase().includes("academy") ||
+    activeBusiness.category.toLowerCase().includes("food") ||
+    activeBusiness.category.toLowerCase().includes("beverage") ||
+    activeBusiness.category.toLowerCase().includes("restaurant") ||
+    activeBusiness.category.toLowerCase().includes("cafe") ||
+    activeBusiness.category.toLowerCase().includes("pharmacy") ||
+    activeBusiness.category.toLowerCase().includes("dispensary") ||
+    activeBusiness.category.toLowerCase().includes("medical") ||
+    activeBusiness.category.toLowerCase().includes("clinic")
+  );
+
+  const getProductCategoryText = () => {
+    if (!activeBusiness) return {
+      title: "Add New Product",
+      subtitle: "Register a new product in your active catalog.",
+      nameLabel: "Product Name *",
+      namePlaceholder: "e.g. HP EliteBook 840 G6",
+      categoryPlaceholder: "e.g. Laptops, Accessories",
+      descPlaceholder: "e.g. Intel Core i5, 8GB RAM, 256GB SSD storage, 14-inch screen",
+      submitText: "Add Product",
+      submittingText: "Creating Product...",
+      nameError: "Product Name is required."
+    };
+    const category = (activeBusiness.category || "").toLowerCase();
+    if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+      return {
+        title: "Add New School Item / Fee",
+        subtitle: "Register a new school fee or inventory item.",
+        nameLabel: "Item / Fee Name *",
+        namePlaceholder: "e.g. School Uniform Set",
+        categoryPlaceholder: "e.g. Apparel, Books, Fees",
+        descPlaceholder: "e.g. Includes shirt/blouse and shorts/skirt. Available in all school sizes.",
+        submitText: "Add Item / Fee",
+        submittingText: "Creating Item...",
+        nameError: "Item Name is required."
+      };
+    } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return {
+        title: "Add New Menu Item",
+        subtitle: "Add a new item to your dining menu.",
+        nameLabel: "Menu Item Name *",
+        namePlaceholder: "e.g. Jollof Rice with Grilled Chicken",
+        categoryPlaceholder: "e.g. Main Dish, Side Dish, Beverage",
+        descPlaceholder: "e.g. Spiced Jollof rice with grilled chicken, salad and shito.",
+        submitText: "Add Menu Item",
+        submittingText: "Creating Menu Item...",
+        nameError: "Menu Item Name is required."
+      };
+    } else if (category.includes("pharmacy") || category.includes("dispensary") || category.includes("medical") || category.includes("clinic")) {
+      return {
+        title: "Add New Drug / Medicine",
+        subtitle: "Register a new drug in your active pharmacy catalog.",
+        nameLabel: "Drug / Medicine Name *",
+        namePlaceholder: "e.g. Paracetamol Tablets",
+        categoryPlaceholder: "e.g. Medication, Prescription",
+        descPlaceholder: "e.g. Pack of 10 generic paracetamol tablets for pain relief and fever.",
+        submitText: "Add Drug / Medicine",
+        submittingText: "Creating Drug...",
+        nameError: "Drug / Medicine Name is required."
+      };
+    }
+    return {
+      title: "Add New Product",
+      subtitle: "Register a new product in your active catalog.",
+      nameLabel: "Product Name *",
+      namePlaceholder: "e.g. HP EliteBook 840 G6",
+      categoryPlaceholder: "e.g. Laptops, Accessories",
+      descPlaceholder: "e.g. Intel Core i5, 8GB RAM, 256GB SSD storage, 14-inch screen",
+      submitText: "Add Product",
+      submittingText: "Creating Product...",
+      nameError: "Product Name is required."
+    };
+  };
+
+  const textMapping = getProductCategoryText();
+
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -24,7 +103,7 @@ export default function CreateProduct() {
 
   const validateForm = () => {
     if (!name.trim()) {
-      setError("Product Name is required.");
+      setError(textMapping.nameError);
       return false;
     }
     const parsedPrice = parseFloat(price);
@@ -80,78 +159,80 @@ export default function CreateProduct() {
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
       
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-800/80 pb-5">
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <button
           onClick={() => router.push('/dashboard/products')}
-          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 text-slate-400 hover:text-white"
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-white"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Add New Product</h2>
-          <p className="text-xs text-slate-400 mt-1">Register a new product in your active catalog.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">{textMapping.title}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{textMapping.subtitle}</p>
         </div>
       </div>
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 text-xs text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-slate-800/80 bg-slate-955/5 backdrop-blur-xl shadow-2xl flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-950/5 backdrop-blur-xl shadow-2xl flex flex-col gap-5">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Product Name */}
           <div className="flex flex-col gap-1.5 md:col-span-2">
-            <label className="text-xs font-semibold text-slate-450 uppercase tracking-wider">
-              Product Name *
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {textMapping.nameLabel}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. HP EliteBook 840 G6"
+              placeholder={textMapping.namePlaceholder}
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Category */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Category
             </label>
             <input
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. Laptops, Accessories"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              placeholder={textMapping.categoryPlaceholder}
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Warranty */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
-              Warranty
-            </label>
-            <input
-              type="text"
-              value={warranty}
-              onChange={(e) => setWarranty(e.target.value)}
-              placeholder="e.g. 3 months, 1 year"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
-            />
-          </div>
+          {showWarranty && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Warranty
+              </label>
+              <input
+                type="text"
+                value={warranty}
+                onChange={(e) => setWarranty(e.target.value)}
+                placeholder="e.g. 3 months, 1 year"
+                className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              />
+            </div>
+          )}
 
           {/* Price */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Price *
             </label>
             <input
@@ -161,13 +242,13 @@ export default function CreateProduct() {
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Currency */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Currency
             </label>
             <input
@@ -176,13 +257,13 @@ export default function CreateProduct() {
               onChange={(e) => setCurrency(e.target.value)}
               placeholder="GHS"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Quantity */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Stock Quantity *
             </label>
             <input
@@ -191,19 +272,19 @@ export default function CreateProduct() {
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="0"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Availability Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Availability Status
             </label>
             <select
               value={availabilityStatus}
               onChange={(e) => setAvailabilityStatus(e.target.value)}
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             >
               <option value="available">Available</option>
               <option value="out_of_stock">Out of Stock</option>
@@ -213,7 +294,7 @@ export default function CreateProduct() {
 
           {/* Image URL */}
           <div className="flex flex-col gap-1.5 md:col-span-2">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Image URL
             </label>
             <input
@@ -221,22 +302,22 @@ export default function CreateProduct() {
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="http://example.com/image.png"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
         </div>
 
         {/* Description */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Description
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Intel Core i5, 8GB RAM, 256GB SSD storage, 14-inch screen"
+            placeholder={textMapping.descPlaceholder}
             rows={4}
-            className="px-4 py-3 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition resize-none"
+            className="px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition resize-none"
           />
         </div>
 
@@ -249,10 +330,10 @@ export default function CreateProduct() {
           {submitting ? (
             <>
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              Creating Product...
+              {textMapping.submittingText}
             </>
           ) : (
-            'Add Product'
+            textMapping.submitText
           )}
         </button>
 

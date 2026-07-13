@@ -44,12 +44,42 @@ export default function CustomerChat({ params }: PageProps) {
 
 
   // Suggested questions
-  const suggestedQuestions = [
-    "Do you have HP laptops?",
-    "What are your opening hours?",
-    "Do you deliver?",
-    "Where are you located?"
-  ];
+  const getSuggestedQuestions = () => {
+    if (!business) return ["What are your opening hours?", "Where are you located?"];
+    
+    const category = (business.category || "").toLowerCase();
+    
+    if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+      return [
+        "What are the admission requirements?",
+        "Do you offer school bus transport?",
+        "What is the tuition fee per term?",
+        "How can I pay school fees?"
+      ];
+    } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return [
+        "What is on your menu?",
+        "Do you deliver food?",
+        "What are your opening hours?",
+        "Do you have vegan options?"
+      ];
+    } else if (category.includes("electronics") || category.includes("tech") || category.includes("computer")) {
+      return [
+        "Do you have HP laptops?",
+        "Do you do computer repairs?",
+        "What is your refund policy?",
+        "Do you have Dell laptops?"
+      ];
+    }
+    
+    // Default fallback prompts
+    return [
+      "What are your opening hours?",
+      "Where are you located?",
+      "What services do you offer?",
+      "Do you deliver?"
+    ];
+  };
 
   // Fetch business public profile on mount
   useEffect(() => {
@@ -61,7 +91,14 @@ export default function CustomerChat({ params }: PageProps) {
         setBusiness(data);
         
         // Seed initial welcome message
-        const welcomeText = `Welcome to ${data.business_name}. Ask me about our products, services, prices, opening hours, or location.`;
+        let welcomeText = `Welcome to ${data.business_name}. Ask me about our products, services, prices, opening hours, or location.`;
+        const category = (data.category || "").toLowerCase();
+        if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+          welcomeText = `Welcome to ${data.business_name}. Ask me about our admissions, classes, tuition fees, school policies, or location.`;
+        } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+          welcomeText = `Welcome to ${data.business_name}. Ask me about our menu, food delivery, opening hours, or location.`;
+        }
+        
         setMessages([
           {
             sender: 'ai',
@@ -372,7 +409,7 @@ export default function CustomerChat({ params }: PageProps) {
       </header>
 
       {/* Message List */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-950 via-slate-955 to-black">
+      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-950 via-slate-950 to-black">
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -411,7 +448,7 @@ export default function CustomerChat({ params }: PageProps) {
         {/* Loading Indicator Bubble */}
         {sending && (
           <div className="flex flex-col items-start max-w-[70%] mr-auto">
-            <div className="rounded-2xl px-4 py-3 bg-slate-900 border border-slate-800 text-slate-455 rounded-bl-none shadow-md flex items-center gap-1.5">
+            <div className="rounded-2xl px-4 py-3 bg-slate-900 border border-slate-800 text-slate-400 rounded-bl-none shadow-md flex items-center gap-1.5">
               <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
               <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
               <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
@@ -430,11 +467,11 @@ export default function CustomerChat({ params }: PageProps) {
           <div className="flex flex-col gap-2 max-w-4xl mx-auto w-full">
             <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-1">Suggested Questions</p>
             <div className="flex flex-wrap gap-2">
-              {suggestedQuestions.map((q, idx) => (
+              {getSuggestedQuestions().map((q, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(q)}
-                  className="px-3.5 py-2 text-xs rounded-full border border-slate-850 bg-slate-900/40 text-slate-300 hover:text-white hover:bg-slate-900 hover:border-slate-700 transition text-left cursor-pointer"
+                  className="px-3.5 py-2 text-xs rounded-full border border-slate-800 bg-slate-900/40 text-slate-300 hover:text-white hover:bg-slate-900 hover:border-slate-700 transition text-left cursor-pointer"
                 >
                   {q}
                 </button>
@@ -472,13 +509,13 @@ export default function CustomerChat({ params }: PageProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={cancelRecording}
-                className="px-3.5 py-2 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800 text-xs text-slate-400 hover:text-rose-450 transition"
+                className="px-3.5 py-2 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800 text-xs text-slate-400 hover:text-rose-500 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={stopRecording}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-red-650/10 active:translate-y-0.5 transition"
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-red-600/10 active:translate-y-0.5 transition"
               >
                 <span className="w-2.5 h-2.5 bg-white rounded-sm"></span>
                 Stop & Send
@@ -487,7 +524,7 @@ export default function CustomerChat({ params }: PageProps) {
           </div>
         ) : (
           <div className="flex items-end gap-2 max-w-4xl mx-auto w-full">
-            <div className="flex-1 bg-slate-900/50 border border-slate-850 rounded-xl px-4 py-2 flex items-center focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
+            <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2 flex items-center focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
@@ -503,7 +540,7 @@ export default function CustomerChat({ params }: PageProps) {
             <button
               onClick={startRecording}
               disabled={sending}
-              className="p-3.5 rounded-xl bg-slate-900 border border-slate-850 hover:border-slate-750 text-cyan-400 hover:text-cyan-300 flex items-center justify-center hover:bg-slate-850 active:translate-y-0.5 transition duration-150 disabled:opacity-40"
+              className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-750 text-cyan-400 hover:text-cyan-300 flex items-center justify-center hover:bg-slate-800 active:translate-y-0.5 transition duration-150 disabled:opacity-40"
               title="Record voice input"
             >
               <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

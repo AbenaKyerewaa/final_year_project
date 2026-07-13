@@ -55,34 +55,50 @@ export default function Register() {
 
   if (loading || user) {
     return (
-      <div className="flex flex-grow items-center justify-center min-h-screen bg-black text-slate-100 font-sans">
+      <div className="flex flex-grow items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Preparing EasyBiz AI...</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Preparing EasyBiz AI...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col flex-grow items-center justify-center min-h-screen bg-slate-900 text-slate-100 font-sans bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black px-4 select-none">
+    <div className="flex flex-col flex-grow items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 dark:from-slate-900 via-white dark:via-slate-950 to-slate-200 dark:to-black px-4 select-none transition-colors duration-300">
 
       {/* Container */}
-      <div className="w-full max-w-md p-8 rounded-2xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-xl shadow-2xl">
+      <div className="w-full max-w-md p-8 rounded-2xl glass-panel shadow-2xl">
+
+        {/* Back Link */}
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors duration-200 mb-6 group"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 20 20" 
+            fill="currentColor" 
+            className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200"
+          >
+            <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+          </svg>
+          Back to Home
+        </Link>
 
         {/* Title */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-indigo-600 dark:to-indigo-400 bg-clip-text text-transparent">
             Create an Account
           </h1>
-          <p className="text-slate-400 text-sm mt-2">
+          <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
             Get started with EasyBiz AI automation.
           </p>
         </div>
 
         {/* Error message */}
         {error && (
-          <div className="mb-6 p-3 text-sm text-rose-450 bg-rose-955/20 border border-rose-900/50 rounded-lg animate-fade-in">
+          <div className="mb-6 p-3 text-sm text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-lg animate-fade-in">
             <span className="font-semibold">Error:</span> {error}
           </div>
         )}
@@ -91,37 +107,37 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Name input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Full Name
             </label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="e.g. Kojo Mensah"
+              placeholder="e.g. Michy Mensah"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
+              className="glass-input rounded-lg px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
             />
           </div>
 
           {/* Email input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="kojo@techhub.com"
+              placeholder="michy@techhub.com"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
+              className="glass-input rounded-lg px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
             />
           </div>
 
           {/* Password input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Password
             </label>
             <input
@@ -130,19 +146,19 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
+              className="glass-input rounded-lg px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200"
             />
           </div>
 
           {/* Role selector dropdown */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Your Role
             </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200 appearance-none"
+              className="glass-input rounded-lg px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200 appearance-none bg-transparent"
               style={{
                 backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M7 9l3 3 3-3' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
                 backgroundPosition: 'right 0.75rem center',
@@ -150,9 +166,9 @@ export default function Register() {
                 backgroundRepeat: 'no-repeat'
               }}
             >
-              <option value="business_owner" className="bg-slate-950 text-slate-200">Business Owner (Default)</option>
-              <option value="staff" className="bg-slate-950 text-slate-200">Staff Member</option>
-              <option value="admin" className="bg-slate-950 text-slate-200">Administrator</option>
+              <option value="business_owner" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">Business Owner (Default)</option>
+              <option value="staff" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">Staff Member</option>
+              <option value="admin" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">Administrator</option>
             </select>
           </div>
 
@@ -174,9 +190,9 @@ export default function Register() {
         </form>
 
         {/* Footer info link */}
-        <div className="text-center mt-6 text-sm text-slate-450">
+        <div className="text-center mt-6 text-sm text-slate-600 dark:text-slate-400">
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-400 hover:underline">
+          <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
             Login here
           </Link>
         </div>

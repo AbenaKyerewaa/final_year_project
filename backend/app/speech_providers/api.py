@@ -6,12 +6,12 @@ class APISpeechToTextProvider(BaseSpeechToTextProvider):
     """Cloud API Speech-to-Text provider invoking OpenAI's Whisper transcription API."""
     
     def __init__(self, api_key: str = None, base_url: str = None):
-        self.api_key = api_key or os.getenv("AI_API_KEY", "").strip()
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("AI_API_KEY", "").strip()
         self.base_url = base_url or os.getenv("AI_API_BASE_URL", "").strip() or "https://api.openai.com/v1"
         
     def transcribe(self, audio_file_path: str) -> str:
         if not self.api_key:
-            raise ValueError("API-based Speech-To-Text requires AI_API_KEY. Please verify your environment config.")
+            raise ValueError("API-based Speech-To-Text requires GEMINI_API_KEY or AI_API_KEY. Please verify your environment config.")
             
         url = f"{self.base_url}/audio/transcriptions"
         headers = {

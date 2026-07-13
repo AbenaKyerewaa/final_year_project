@@ -113,7 +113,7 @@ export default function WhatsAppSimulator() {
 
   if (!activeBusiness) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-slate-350 p-6">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-slate-600 dark:text-slate-350 p-6">
         <div className="w-16 h-16 border-4 border-dashed border-slate-700 rounded-full flex items-center justify-center text-slate-500 mb-4 font-bold text-lg">?</div>
         <h2 className="text-xl font-bold">No Active Business Selected</h2>
         <p className="text-slate-500 text-sm mt-1 max-w-sm text-center">
@@ -127,21 +127,21 @@ export default function WhatsAppSimulator() {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       
       {/* Simulation Page Header & Navigation */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/whatsapp"
-            className="p-2 rounded-lg bg-slate-900 border border-slate-850 hover:bg-slate-800 text-slate-400 hover:text-white transition duration-200"
+            className="p-2 rounded-lg bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-white transition duration-200"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </Link>
           <div>
-            <h1 className="text-xl font-extrabold text-slate-100 flex items-center gap-2">
+            <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               WhatsApp Simulation
             </h1>
-            <p className="text-slate-400 text-xs">
+            <p className="text-slate-500 dark:text-slate-400 text-xs">
               Interact as a customer using WhatsApp simulation context: <code className="text-emerald-400 font-mono">channel = whatsapp_simulation</code>
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function WhatsAppSimulator() {
       <div className="flex justify-center">
         
         {/* Mobile Mock Container */}
-        <div className="w-full max-w-md h-[600px] border border-slate-800 bg-[#0b141a] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative font-sans">
+        <div className="w-full max-w-md h-[600px] border border-slate-200 dark:border-slate-800 bg-[#0b141a] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative font-sans">
           
           {/* Mobile Top Speaker/Cam notch */}
           <div className="h-5 bg-slate-950 flex justify-center items-center gap-1.5 shrink-0">
@@ -161,14 +161,14 @@ export default function WhatsAppSimulator() {
           </div>
 
           {/* WhatsApp Chat Room Header */}
-          <div className="bg-[#202c33] text-slate-100 px-4 py-3 flex items-center justify-between shrink-0 shadow-lg border-b border-slate-800/30">
+          <div className="bg-[#202c33] text-slate-800 dark:text-slate-100 px-4 py-3 flex items-center justify-between shrink-0 shadow-lg border-b border-slate-200 dark:border-slate-800/30">
             <div className="flex items-center gap-3">
               {/* Profile Avatar Placeholder */}
-              <div className="w-10 h-10 rounded-full bg-emerald-700/60 border border-emerald-500/20 flex items-center justify-center font-bold text-slate-100 select-none text-base">
+              <div className="w-10 h-10 rounded-full bg-emerald-700/60 border border-emerald-500/20 flex items-center justify-center font-bold text-slate-800 dark:text-slate-100 select-none text-base">
                 {activeBusiness.business_name.substring(0, 1).toUpperCase()}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-bold text-sm text-slate-200 truncate pr-2">
+                <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate pr-2">
                   {activeBusiness.business_name}
                 </span>
                 <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
@@ -179,8 +179,8 @@ export default function WhatsAppSimulator() {
             </div>
             
             {/* Phone & Menu Icons */}
-            <div className="flex items-center gap-4 text-slate-400">
-              <svg className="w-5 h-5 hover:text-slate-200 cursor-pointer transition duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
+              <svg className="w-5 h-5 hover:text-slate-800 dark:text-slate-200 cursor-pointer transition duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
               {/* WhatsApp small logo */}
@@ -217,7 +217,7 @@ export default function WhatsAppSimulator() {
                     
                     {/* Timestamp & Ticks */}
                     <div className="absolute bottom-1 right-2 flex items-center gap-1 select-none">
-                      <span className="text-[9px] text-slate-400">{msg.timestamp}</span>
+                      <span className="text-[9px] text-slate-500 dark:text-slate-400">{msg.timestamp}</span>
                       {isCust && (
                         <svg className="w-3.5 h-3.5 text-blue-400" viewBox="0 0 16 15" fill="none">
                           <path d="M15.01 3.3l-5.5 5.5-2.76-2.76" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -232,7 +232,7 @@ export default function WhatsAppSimulator() {
 
             {sending && (
               <div className="flex justify-start w-full">
-                <div className="bg-[#202c33] text-slate-200 max-w-[85%] rounded-lg px-3 py-2 shadow-sm text-sm rounded-tl-none flex items-center gap-1">
+                <div className="bg-[#202c33] text-slate-800 dark:text-slate-200 max-w-[85%] rounded-lg px-3 py-2 shadow-sm text-sm rounded-tl-none flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -252,8 +252,8 @@ export default function WhatsAppSimulator() {
           {/* Typing Area Footer */}
           <div className="bg-[#111b21] p-3 flex items-center gap-2 shrink-0">
             {/* Attachment Icons */}
-            <div className="flex items-center gap-2 text-slate-400 shrink-0">
-              <svg className="w-6 h-6 hover:text-slate-200 cursor-pointer transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 shrink-0">
+              <svg className="w-6 h-6 hover:text-slate-800 dark:text-slate-200 cursor-pointer transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0l-4-4a4 4 0 015.656-5.656l1.1 1.1" />
               </svg>
             </div>
@@ -267,10 +267,10 @@ export default function WhatsAppSimulator() {
                 onKeyDown={handleKeyPress}
                 placeholder="Type a message"
                 disabled={sending}
-                className="w-full bg-[#2a3942] border border-slate-800 rounded-lg py-2 pl-3.5 pr-10 text-sm text-slate-200 focus:outline-none placeholder-slate-500"
+                className="w-full bg-[#2a3942] border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-3.5 pr-10 text-sm text-slate-800 dark:text-slate-200 focus:outline-none placeholder-slate-500"
               />
               {/* Emoticon mock icon */}
-              <svg className="w-5 h-5 absolute right-3.5 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 absolute right-3.5 top-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-300 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0l-4-4a4 4 0 015.656-5.656l1.1 1.1" />
               </svg>
             </div>

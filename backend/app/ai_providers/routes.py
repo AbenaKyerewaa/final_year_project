@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import Optional, List, Union
-from app.ai_providers import get_llm_provider, get_embedding_provider
+from app.ai_providers import AIService
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -33,11 +33,11 @@ class EmbedResponse(BaseModel):
 def test_generate(payload: GenerateRequest):
     """Generates a text completion response using the configured active LLM provider."""
     try:
-        provider = get_llm_provider()
-        mode_name = provider.__class__.__name__
-        model_name = getattr(provider, "model", "mock-model")
+        ai_service = AIService()
+        mode_name = ai_service.llm_mode
+        model_name = ai_service.llm_model
         
-        response = provider.generate_response(
+        response = ai_service.generate_response(
             prompt=payload.prompt,
             system_prompt=payload.system_prompt
         )
@@ -64,13 +64,13 @@ def test_embed(payload: EmbedRequest):
         )
         
     try:
-        provider = get_embedding_provider()
-        mode_name = provider.__class__.__name__
-        model_name = getattr(provider, "model", "mock-model")
+        ai_service = AIService()
+        mode_name = ai_service.embedding_mode
+        model_name = ai_service.embedding_model
         
         if payload.texts is not None:
             # Batch embedding
-            embeddings = provider.embed_batch(payload.texts)
+            embeddings = ai_service.embed_batch(payload.texts)
             dim = len(embeddings[0]) if embeddings else 0
             return EmbedResponse(
                 embedding=embeddings,
@@ -80,7 +80,7 @@ def test_embed(payload: EmbedRequest):
             )
         else:
             # Single embedding
-            embedding = provider.embed_text(payload.text)
+            embedding = ai_service.embed_text(payload.text)
             dim = len(embedding)
             return EmbedResponse(
                 embedding=embedding,

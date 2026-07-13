@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export interface ServiceResponse {
   id: string;
@@ -127,4 +127,35 @@ export async function deleteService(id: string, token: string): Promise<void> {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to delete service.');
   }
+}
+
+export interface ServiceImportSummary {
+  total_rows: number;
+  successful_rows: number;
+  failed_rows: number;
+  errors: string[];
+}
+
+/**
+ * Bulk imports services from a CSV file.
+ */
+export async function importServicesCSV(businessId: string, file: File, reindex: boolean, token: string): Promise<ServiceImportSummary> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/businesses/${businessId}/services/import-csv?reindex_after_import=${reindex}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to import services.');
+  }
+
+  return response.json();
 }

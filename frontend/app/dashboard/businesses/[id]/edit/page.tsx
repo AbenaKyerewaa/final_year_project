@@ -123,50 +123,50 @@ export default function EditBusiness({ params }: PageProps) {
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
 
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-800 pb-5">
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-5">
         <button
           onClick={() => router.push('/dashboard/businesses')}
-          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 text-slate-400 hover:text-white"
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-white"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Edit Business Profile</h2>
-          <p className="text-xs text-slate-400 mt-1">Modify details for "{businessName}" profile.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Edit Business Profile</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Modify details for "{businessName}" profile.</p>
         </div>
       </div>
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 text-xs text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-slate-800/80 bg-slate-905/20 backdrop-blur-xl shadow-2xl flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-905/20 backdrop-blur-xl shadow-2xl flex flex-col gap-5">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Business Name */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Business Name *
             </label>
             <input
               type="text"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g. Kojo's Electronics Shop"
+              placeholder="e.g. Michy's Electronics Shop"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* Category */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Category *
             </label>
             <input
@@ -175,13 +175,13 @@ export default function EditBusiness({ params }: PageProps) {
               onChange={(e) => setCategory(e.target.value)}
               placeholder="e.g. Electronics, Retail, Beauty"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Location *
             </label>
             <input
@@ -190,13 +190,13 @@ export default function EditBusiness({ params }: PageProps) {
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. Adum, Kumasi"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* Phone */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Phone Number *
             </label>
             <input
@@ -205,13 +205,13 @@ export default function EditBusiness({ params }: PageProps) {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. +233 24 123 4567"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* WhatsApp */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               WhatsApp Number
             </label>
             <input
@@ -219,13 +219,13 @@ export default function EditBusiness({ params }: PageProps) {
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
               placeholder="e.g. +233 24 123 4567"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* Opening Hours */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Opening Hours
             </label>
             <input
@@ -233,13 +233,13 @@ export default function EditBusiness({ params }: PageProps) {
               value={openingHours}
               onChange={(e) => setOpeningHours(e.target.value)}
               placeholder="e.g. Mon-Sat: 8:00 AM - 6:00 PM"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* Payment Methods */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Payment Methods
             </label>
             <input
@@ -247,13 +247,13 @@ export default function EditBusiness({ params }: PageProps) {
               value={paymentMethods}
               onChange={(e) => setPaymentMethods(e.target.value)}
               placeholder="e.g. MTN Mobile Money, Cash, Visa"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
 
           {/* Delivery Options */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Delivery Options
             </label>
             <input
@@ -261,14 +261,14 @@ export default function EditBusiness({ params }: PageProps) {
               value={deliveryOptions}
               onChange={(e) => setDeliveryOptions(e.target.value)}
               placeholder="e.g. Nationwide delivery via VIP bus, local pickup"
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
             />
           </div>
         </div>
 
         {/* Description */}
         <div className="flex flex-col gap-1.5 mt-1">
-          <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Business Description
           </label>
           <textarea
@@ -276,7 +276,7 @@ export default function EditBusiness({ params }: PageProps) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Introduce your business context, warranty options, core values, etc..."
             rows={4}
-            className="px-4 py-3 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200 resize-none"
+            className="px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200 resize-none"
           />
         </div>
 

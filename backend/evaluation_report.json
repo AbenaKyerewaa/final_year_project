@@ -1,8 +1,8 @@
 {
     "metrics": {
         "response_accuracy_pct": 85.71428571428571,
-        "average_retrieval_accuracy_pct": 48.22630286216736,
-        "average_response_time_seconds": 2.142635311399187,
+        "average_retrieval_accuracy_pct": 79.70973338399615,
+        "average_response_time_seconds": 6.064479214804513,
         "hallucination_rate_pct": 0.0,
         "human_handoff_correctness_pct": 100.0
     },
@@ -14,9 +14,9 @@
                 "refurbished",
                 "both"
             ],
-            "actual_answer": "[MOCK AI RESPONSE]\nPrompt received: 'Do you sell new or used laptops?'\nSystem In...",
-            "retrieval_score": 0.6803361773490906,
-            "response_time": 2.27543306350708,
+            "actual_answer": "We sell both brand new in box and Grade A clean refurbished laptops. Refurbished...",
+            "retrieval_score": 0.8980040550231934,
+            "response_time": 7.063191652297974,
             "passed": true,
             "type": "retrieval"
         },
@@ -28,10 +28,10 @@
                 "HP",
                 "ProBook"
             ],
-            "actual_answer": "[MOCK AI RESPONSE]\nPrompt received: 'What laptops do you have in stock?'\nSystem ...",
-            "retrieval_score": 0.35856863856315613,
-            "response_time": 2.071881055831909,
-            "passed": true,
+            "actual_answer": "We sell both brand new in box and Grade A clean refurbished laptops. Refurbished...",
+            "retrieval_score": 0.8000380992889404,
+            "response_time": 5.896921157836914,
+            "passed": false,
             "type": "retrieval"
         },
         {
@@ -39,10 +39,10 @@
             "expected_keywords": [
                 "5200"
             ],
-            "actual_answer": "[MOCK AI RESPONSE]\nPrompt received: 'How much does the HP ProBook cost?'\nSystem ...",
-            "retrieval_score": 0.1767767071723938,
-            "response_time": 2.0992929935455322,
-            "passed": false,
+            "actual_answer": "We have 'HP ProBook 450 G8' available for GHS 5200.00. Core i5, 8GB RAM, 256GB S...",
+            "retrieval_score": 0.6818886995315552,
+            "response_time": 6.497365474700928,
+            "passed": true,
             "type": "retrieval"
         },
         {
@@ -52,9 +52,9 @@
                 "replacement",
                 "450"
             ],
-            "actual_answer": "[MOCK AI RESPONSE]\nPrompt received: 'Do you do laptop screen replacement?'\nSyste...",
-            "retrieval_score": 0.5555555820465088,
-            "response_time": 2.1080784797668457,
+            "actual_answer": "Our 'Laptop Screen Replacement' service is available for GHS 450.00. Professiona...",
+            "retrieval_score": 0.761749267578125,
+            "response_time": 7.673814296722412,
             "passed": true,
             "type": "retrieval"
         },
@@ -65,9 +65,9 @@
                 "6 months",
                 "refurbished"
             ],
-            "actual_answer": "[MOCK AI RESPONSE]\nPrompt received: 'Do you offer any warranty on refurbished la...",
-            "retrieval_score": 0.5368755459785461,
-            "response_time": 2.1324069499969482,
+            "actual_answer": "We provide a 1-year warranty on brand new laptops and a 6-month warranty on refu...",
+            "retrieval_score": 0.8653180003166199,
+            "response_time": 8.694229364395142,
             "passed": true,
             "type": "retrieval"
         },
@@ -80,8 +80,8 @@
                 "connect"
             ],
             "actual_answer": "I'm sorry, I don't have enough information about that. Let me connect you with a...",
-            "retrieval_score": 0.06772854924201965,
-            "response_time": 2.133798122406006,
+            "retrieval_score": 0.5726832151412964,
+            "response_time": 4.497355222702026,
             "passed": true,
             "type": "low_confidence"
         },
@@ -95,7 +95,7 @@
             ],
             "actual_answer": "I have notified our team. A human representative will be with you shortly.",
             "retrieval_score": 1.0,
-            "response_time": 2.1775565147399902,
+            "response_time": 2.1284773349761963,
             "passed": true,
             "type": "handoff"
         }

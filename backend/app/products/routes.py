@@ -4,7 +4,7 @@ import io
 from datetime import datetime
 from typing import Optional, List
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database.session import get_db
@@ -88,6 +88,7 @@ def verify_business_access(business_id: uuid.UUID, db: Session, current_user: Us
 def create_product(
     business_id: uuid.UUID,
     payload: ProductCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -109,6 +110,10 @@ def create_product(
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
+    
+    # Rebuild search index in background to keep RAG chatbot in sync
+    background_tasks.add_task(index_business_data, business_id, db)
+    
     return new_product
 
 
@@ -145,6 +150,7 @@ def get_product(
 def update_product(
     product_id: uuid.UUID,
     payload: ProductUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -168,12 +174,17 @@ def update_product(
             
     db.commit()
     db.refresh(product)
+    
+    # Rebuild search index in background to keep RAG chatbot in sync
+    background_tasks.add_task(index_business_data, product.business_id, db)
+    
     return product
 
 
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(
     product_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -186,9 +197,14 @@ def delete_product(
         )
     
     verify_business_access(product.business_id, db, current_user)
+    business_id = product.business_id
     
     db.delete(product)
     db.commit()
+    
+    # Rebuild search index in background to keep RAG chatbot in sync
+    background_tasks.add_task(index_business_data, business_id, db)
+    
     return None
 
 

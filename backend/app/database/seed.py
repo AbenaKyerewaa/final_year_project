@@ -20,7 +20,7 @@ def seed_db():
     db = SessionLocal()
     try:
         # Check if we already have users to prevent double seeding
-        existing_user = db.query(User).filter(User.email == "kojo@easybiz.com").first()
+        existing_user = db.query(User).filter(User.email == "michy@easybiz.com").first()
         if existing_user:
             print("Database already seeded with sample user!")
             return
@@ -29,18 +29,28 @@ def seed_db():
         
         # 1. Create User
         user = User(
-            full_name="Kojo Mensah",
-            email="kojo@easybiz.com",
+            full_name="Michy Mensah",
+            email="michy@easybiz.com",
             password_hash=hash_password("password123"),
             role="business_owner"
         )
         db.add(user)
         db.flush() # Populate user.id
 
+        # 1b. Create Abena User
+        abena_user = User(
+            full_name="Abena EasyBiz",
+            email="abena@gmail.com",
+            password_hash=hash_password("password123"),
+            role="business_owner"
+        )
+        db.add(abena_user)
+        db.flush()
+
         # 2. Create Business
         business = Business(
             owner_id=user.id,
-            business_name="Kojo's Tech Hub",
+            business_name="Michy's Tech Hub",
             category="Electronics Shop",
             location="Adum, Kumasi, Ghana",
             phone="+233 24 123 4567",
@@ -287,7 +297,7 @@ def seed_db():
 
         # --- 8. Create Akwaaba Restaurant ---
         akwaaba = Business(
-            owner_id=user.id,
+            owner_id=abena_user.id,
             business_name="Akwaaba Restaurant",
             category="Food & Beverage",
             location="Osu, Accra, Ghana",
@@ -365,8 +375,93 @@ def seed_db():
         ]
         db.add_all(akwaaba_faqs)
 
+        # --- 9. Create MelTech Pharmacy ---
+        pharmacy = Business(
+            owner_id=abena_user.id,
+            business_name="MelTech Pharmacy",
+            category="Pharmacy",
+            location="Neighborhood clinic & dispensary in Accra",
+            phone="+233 24 555 6677",
+            whatsapp_number="+233 24 555 6677",
+            opening_hours="Daily: 7:00 AM - 9:00 PM",
+            payment_methods="Mobile Money, Cash, Bank Transfer",
+            delivery_options="Delivery within Accra via dispatch riders (orders before 8:00 PM)",
+            description="A neighborhood pharmacy and clinic dispensary in Accra providing quality medications and healthcare products."
+        )
+        db.add(pharmacy)
+        db.flush()
+
+        pharmacy_products = [
+            Product(
+                business_id=pharmacy.id,
+                name="Paracetamol Tablets",
+                category="Medication",
+                description="Pack of 10 generic paracetamol tablets for pain relief and fever.",
+                price=5.00,
+                currency="GHS",
+                quantity=100,
+                availability_status="available",
+                warranty="None",
+            ),
+            Product(
+                business_id=pharmacy.id,
+                name="Amoxicillin Capsules",
+                category="Prescription",
+                description="500mg Amoxicillin antibiotic capsules. Requires a valid doctor's prescription.",
+                price=15.00,
+                currency="GHS",
+                quantity=50,
+                availability_status="available",
+                warranty="None",
+            ),
+            Product(
+                business_id=pharmacy.id,
+                name="Pediatric Cough Syrup",
+                category="Medication",
+                description="Cough syrup for children, relief of dry and tickly coughs. 100ml bottle.",
+                price=35.00,
+                currency="GHS",
+                quantity=25,
+                availability_status="available",
+                warranty="None",
+            )
+        ]
+        db.add_all(pharmacy_products)
+
+        pharmacy_services = [
+            Service(
+                business_id=pharmacy.id,
+                name="Pharmacist Consultation",
+                description="Consultation check with the on-duty pharmacist for blood pressure, blood sugar, and medication advice.",
+                price=50.00,
+                currency="GHS",
+                duration=15,
+                availability_status="available"
+            )
+        ]
+        db.add_all(pharmacy_services)
+
+        pharmacy_faqs = [
+            FAQ(
+                business_id=pharmacy.id,
+                question="Do you sell Paracetamol or Amoxicillin?",
+                answer="We have Paracetamol (GHS 5.00 per pack) in stock. For Amoxicillin, it is available but requires a valid prescription. Note: I can only verify inventory. For medical advice, please consult our on-duty pharmacist."
+            ),
+            FAQ(
+                business_id=pharmacy.id,
+                question="Do you deliver medicines at night?",
+                answer="We are open daily from 7:00 AM to 9:00 PM. We deliver within Accra via dispatch riders for orders placed before 8:00 PM. We do not offer overnight delivery."
+            ),
+            FAQ(
+                business_id=pharmacy.id,
+                question="Do you open on weekends?",
+                answer="Yes, we are open daily from 7:00 AM to 9:00 PM, including Saturdays and Sundays."
+            )
+        ]
+        db.add_all(pharmacy_faqs)
+
         db.commit()
-        print("Database successfully seeded with all sample businesses (Kojo's Tech Hub, MelTech, Grace Academy, Akwaaba Restaurant)!")
+        print("Database successfully seeded with all sample businesses (Michy's Tech Hub, MelTech, Grace Academy, Akwaaba Restaurant, MelTech Pharmacy)!")
 
     except Exception as e:
         db.rollback()

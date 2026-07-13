@@ -9,6 +9,85 @@ export default function CreateService() {
   const { token, activeBusiness } = useAuth();
   const router = useRouter();
 
+  const getPlaceholders = () => {
+    if (!activeBusiness) return {
+      name: "e.g. Laptop Diagnostics / Cleaning",
+      duration: "e.g. 15-20",
+      description: "e.g. Full system teardown, thermal paste replacement, and motherboard dust cleaning."
+    };
+    
+    const category = (activeBusiness.category || "").toLowerCase();
+    
+    if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+      return {
+        name: "e.g. Term Tuition / Admission Registration",
+        duration: "e.g. 1",
+        description: "e.g. Full tuition fee cover for one child per academic term, including course textbooks."
+      };
+    } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return {
+        name: "e.g. VIP Table Reservation / Event Catering",
+        duration: "e.g. 1-2",
+        description: "e.g. VIP lounge table booking for up to 6 guests including a complimentary welcome mocktail."
+      };
+    } else if (category.includes("pharmacy") || category.includes("dispensary") || category.includes("medical") || category.includes("clinic")) {
+      return {
+        name: "e.g. Pharmacist Consultation / BP Check",
+        duration: "e.g. 10-15",
+        description: "e.g. General health consultation with the on-duty pharmacist, including blood pressure check."
+      };
+    }
+    
+    return {
+      name: "e.g. Laptop Diagnostics / Cleaning",
+      duration: "e.g. 15-20",
+      description: "e.g. Full system teardown, thermal paste replacement, and motherboard dust cleaning."
+    };
+  };
+
+  const placeholders = getPlaceholders();
+
+  const getDurationLabel = () => {
+    if (!activeBusiness) return "Duration";
+    const category = (activeBusiness.category || "").toLowerCase();
+    if (category.includes("school") || category.includes("education") || category.includes("academy") || category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return "Service Unit";
+    }
+    return "Duration";
+  };
+
+  const getDurationOptions = () => {
+    if (!activeBusiness) return [
+      { value: "minutes", label: "Minutes" },
+      { value: "hours", label: "Hours" },
+      { value: "days", label: "Days" }
+    ];
+    
+    const category = (activeBusiness.category || "").toLowerCase();
+    
+    if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+      return [
+        { value: "term", label: "Per Term" },
+        { value: "month", label: "Per Month" },
+        { value: "one-time", label: "One-Time Fee" }
+      ];
+    } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return [
+        { value: "booking", label: "Per Booking" },
+        { value: "guest", label: "Per Guest" },
+        { value: "hour", label: "Per Hour" },
+        { value: "delivery", label: "Per Delivery" },
+        { value: "one-time", label: "One-Time Fee" }
+      ];
+    }
+    
+    return [
+      { value: "minutes", label: "Minutes" },
+      { value: "hours", label: "Hours" },
+      { value: "days", label: "Days" }
+    ];
+  };
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -16,6 +95,20 @@ export default function CreateService() {
   const [duration, setDuration] = useState('');
   const [durationUnit, setDurationUnit] = useState('minutes');
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
+
+  // Set default duration unit based on business category
+  React.useEffect(() => {
+    if (activeBusiness) {
+      const category = (activeBusiness.category || "").toLowerCase();
+      if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+        setDurationUnit("term");
+      } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+        setDurationUnit("booking");
+      } else {
+        setDurationUnit("minutes");
+      }
+    }
+  }, [activeBusiness]);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -78,50 +171,50 @@ export default function CreateService() {
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
       
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-800/80 pb-5">
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <button
           onClick={() => router.push('/dashboard/services')}
-          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 text-slate-400 hover:text-white"
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-white"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Add New Service</h2>
-          <p className="text-xs text-slate-400 mt-1">Register a new service offering in your active catalog.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Add New Service</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Register a new service offering in your active catalog.</p>
         </div>
       </div>
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 text-xs text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-slate-800/80 bg-slate-955/5 backdrop-blur-xl shadow-2xl flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-950/5 backdrop-blur-xl shadow-2xl flex flex-col gap-5">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Service Name */}
           <div className="flex flex-col gap-1.5 md:col-span-2">
-            <label className="text-xs font-semibold text-slate-450 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Service Name *
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Laptop Diagnostics / Cleaning"
+              placeholder={placeholders.name}
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Price */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Price *
             </label>
             <input
@@ -131,13 +224,13 @@ export default function CreateService() {
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
           {/* Currency */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Currency
             </label>
             <input
@@ -146,44 +239,44 @@ export default function CreateService() {
               onChange={(e) => setCurrency(e.target.value)}
               placeholder="GHS"
               required
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>
 
-          {/* Duration */}
+          {/* Duration / Service Unit */}
           <div className="flex flex-col gap-1.5 md:col-span-1">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
-              Duration
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {getDurationLabel()}
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
-                placeholder="e.g. 15-20"
-                className="w-28 px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                placeholder={placeholders.duration}
+                className="w-28 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
               />
               <select
                 value={durationUnit}
                 onChange={(e) => setDurationUnit(e.target.value)}
-                className="flex-1 px-4 py-2.5 min-w-[120px] rounded-lg border border-slate-800 bg-slate-950 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                className="flex-1 px-4 py-2.5 min-w-[120px] rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
               >
-                <option value="minutes">Minutes</option>
-                <option value="hours">Hours</option>
-                <option value="days">Days</option>
+                {getDurationOptions().map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>
 
           {/* Availability Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Availability Status
             </label>
             <select
               value={availabilityStatus}
               onChange={(e) => setAvailabilityStatus(e.target.value)}
-              className="px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+              className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
             >
               <option value="available">Available</option>
               <option value="unavailable">Unavailable</option>
@@ -193,15 +286,15 @@ export default function CreateService() {
 
         {/* Description */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-455 uppercase tracking-wider">
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Description
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Full system teardown, thermal paste replacement, and motherboard dust cleaning."
+            placeholder={placeholders.description}
             rows={4}
-            className="px-4 py-3 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-200 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 transition resize-none"
+            className="px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition resize-none"
           />
         </div>
 

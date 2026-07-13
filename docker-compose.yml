@@ -28,7 +28,8 @@ services:
       - DATABASE_URL=postgresql://easybiz_user:easybiz_password_2026@postgres:5432/easybiz_db
       - JWT_SECRET=super_secret_key_for_development_change_in_production_12345
       - AI_MODE=mock
-      - CORS_ORIGINS=http://localhost:3000
+      - GEMINI_API_KEY
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
       - WHATSAPP_MODE=simulation
       - WHATSAPP_VERIFY_TOKEN=easybiz_verify_token_2026
     depends_on:
@@ -47,7 +48,7 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
     depends_on:
       - backend
 

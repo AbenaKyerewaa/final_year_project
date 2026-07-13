@@ -134,8 +134,8 @@ Run the test command inside the `backend` directory:
 ```text
 === STARTING PHASE 9 (RAG RETRIEVAL & AI CHAT ENGINE) INTEGRATION TESTS ===
 
-1. Logging in as Kojo...
-[OK] Found business 'Kojo's Tech Hub' with ID: 3625fc62-82db-4eb7-ad3c-e07e8c4a6f64
+1. Logging in as Michy...
+[OK] Found business 'Michy's Tech Hub' with ID: 3625fc62-82db-4eb7-ad3c-e07e8c4a6f64
 
 2. Rebuilding RAG Index...
 [OK] RAG index rebuilt!

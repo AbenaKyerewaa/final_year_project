@@ -41,6 +41,9 @@ class BaseVectorStore(ABC):
 class FAISSVectorStore(BaseVectorStore):
     """FAISS-backed vector store implementing strict metadata/index file segregation per business_id."""
     
+    # Class-level memory cache to avoid dynamic disk I/O on every RAG query
+    _cache = {}
+
     def _get_paths(self, business_id: str):
         business_dir = os.path.join(INDICES_DIR, str(business_id))
         index_path = os.path.join(business_dir, "index.faiss")
@@ -99,10 +102,29 @@ class FAISSVectorStore(BaseVectorStore):
             return []
             
         try:
-            # 1. Read index and metadata from disk
-            index = faiss.read_index(index_path)
-            with open(meta_path, "r", encoding="utf-8") as f:
-                metadata_list = json.load(f)
+            # Get file timestamps to validate cache integrity
+            mtime_index = os.path.getmtime(index_path)
+            mtime_meta = os.path.getmtime(meta_path)
+            
+            cached = self._cache.get(business_id)
+            if (cached and 
+                cached.get("mtime_index") == mtime_index and 
+                cached.get("mtime_meta") == mtime_meta):
+                index = cached["index"]
+                metadata_list = cached["meta"]
+            else:
+                # 1. Read index and metadata from disk on cache miss or file updates
+                index = faiss.read_index(index_path)
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    metadata_list = json.load(f)
+                
+                # Update the static memory cache
+                self._cache[business_id] = {
+                    "index": index,
+                    "meta": metadata_list,
+                    "mtime_index": mtime_index,
+                    "mtime_meta": mtime_meta
+                }
                 
             # 2. Normalize query vector
             q_vec = np.array([query_embedding], dtype=np.float32)

@@ -1,7 +1,7 @@
 import requests
 import random
 
-API_URL = "http://localhost:8000"
+API_URL = "http://127.0.0.1:8000"
 
 def test_business_crud():
     print("=== STARTING BUSINESS CRUD INTEGRATION TESTS ===")

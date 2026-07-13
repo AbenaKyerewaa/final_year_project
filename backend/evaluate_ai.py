@@ -11,7 +11,7 @@ from app.database.session import SessionLocal
 from app.businesses.models import Business
 from app.rag.indexer import index_business_data
 
-API_URL = "http://localhost:8000"
+API_URL = "http://127.0.0.1:8000"
 
 # 1. Evaluation dataset for MelTech Computers
 EVAL_QUESTIONS = [

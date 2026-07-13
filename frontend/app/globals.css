@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-panel-heavy-bg: rgba(248, 250, 252, 0.9);
+  --glass-panel-heavy-border: rgba(15, 23, 42, 0.12);
+  --glass-panel-light-bg: rgba(255, 255, 255, 0.4);
+  --glass-panel-light-border: rgba(15, 23, 42, 0.04);
+
+  --glass-card-hover-bg: rgba(255, 255, 255, 0.9);
+  --glass-card-hover-border: rgba(59, 130, 246, 0.35);
+
+  --glass-input-bg: rgba(248, 250, 252, 0.8);
+  --glass-input-border: rgba(15, 23, 42, 0.12);
+  --glass-input-focus-bg: #ffffff;
+}
+
+.dark {
   --background: #030712;
   --foreground: #f3f4f6;
+
+  --glass-bg: rgba(10, 15, 30, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-panel-heavy-bg: rgba(8, 12, 24, 0.85);
+  --glass-panel-heavy-border: rgba(255, 255, 255, 0.1);
+  --glass-panel-light-bg: rgba(255, 255, 255, 0.02);
+  --glass-panel-light-border: rgba(255, 255, 255, 0.04);
+
+  --glass-card-hover-bg: rgba(15, 23, 42, 0.8);
+  --glass-card-hover-border: rgba(59, 130, 246, 0.35);
+
+  --glass-input-bg: rgba(3, 7, 18, 0.6);
+  --glass-input-border: rgba(255, 255, 255, 0.08);
+  --glass-input-focus-bg: rgba(3, 7, 18, 0.8);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 html {
   scroll-behavior: smooth;
-  background-color: #030712;
+  background-color: var(--background);
 }
 
 body {
-  background: #030712;
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
 }
 
@@ -43,24 +78,24 @@ body {
 
 /* Premium Glass Frost Panels */
 .glass-panel {
-  background: rgba(10, 15, 30, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
 }
 
 .glass-panel-heavy {
-  background: rgba(8, 12, 24, 0.85);
+  background: var(--glass-panel-heavy-bg);
   backdrop-filter: blur(24px) saturate(200%);
   -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-panel-heavy-border);
 }
 
 .glass-panel-light {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--glass-panel-light-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-panel-light-border);
 }
 
 .glass-card-hover {
@@ -68,20 +103,20 @@ body {
 }
 .glass-card-hover:hover {
   transform: translateY(-4px);
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(59, 130, 246, 0.35);
+  background: var(--glass-card-hover-bg);
+  border-color: var(--glass-card-hover-border);
   box-shadow: 0 12px 40px -12px rgba(59, 130, 246, 0.25);
 }
 
 .glass-input {
-  background: rgba(3, 7, 18, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--glass-input-bg);
+  border: 1px solid var(--glass-input-border);
   transition: all 0.3s ease;
 }
 .glass-input:focus {
   border-color: rgba(59, 130, 246, 0.5);
   box-shadow: 0 0 15px -3px rgba(59, 130, 246, 0.3);
-  background: rgba(3, 7, 18, 0.8);
+  background: var(--glass-input-focus-bg);
   outline: none;
 }
 
@@ -114,4 +149,3 @@ body {
 .animate-pulse-slow {
   animation: pulse-slow 8s infinite ease-in-out;
 }
-

@@ -3,7 +3,7 @@ import random
 import sys
 import os
 
-API_URL = "http://localhost:8000"
+API_URL = "http://127.0.0.1:8000"
 
 def clean_database():
     print("Cleaning database of old test WhatsApp data...")

@@ -76,8 +76,8 @@ Long files are partitioned into retrieval units:
 
 ### Step 3: Embedding Generation & Vector Storage
 Chunks are mapped into high-dimensional vectors representing semantic meaning using:
-*   Local setup: Sentence Transformers (`all-MiniLM-L6-v2`) or Ollama (`nomic-embed-text`).
-*   Cloud setup: Provider-based embeddings (OpenAI, Gemini).
+*   Provider-based embeddings (Google Gemini, OpenAI).
+*   Fallback local setup: Sentence Transformers (`all-MiniLM-L6-v2`).
 These embeddings are loaded into a vector store (ChromaDB or FAISS) paired with metadata including `business_id`, `source_type`, and `source_id`.
 > [!IMPORTANT]
 > **Data Isolation:** Every retrieval query is strictly filtered using the respective `business_id` metadata tag to guarantee a customer chatting with one SME can never retrieve data belonging to another.

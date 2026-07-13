@@ -36,7 +36,7 @@ None (fully public).
 #### Response Payload Schema
 ```json
 {
-  "business_name": "Kojo's Tech Hub",
+  "business_name": "Michy's Tech Hub",
   "category": "Electronics Shop",
   "location": "Adum, Kumasi, Ghana",
   "opening_hours": "Monday - Saturday: 8:00 AM - 6:00 PM",
@@ -86,13 +86,13 @@ Make sure the backend is active. Run the test script inside the `backend` folder
 ```text
 === STARTING PHASE 10 (CUSTOMER WEB CHAT INTERFACE API) INTEGRATION TESTS ===
 
-1. Logging in as Kojo to get business ID...
-[OK] Found business 'Kojo's Tech Hub' with ID: 3625fc62-82db-4eb7-ad3c-e07e8c4a6f64
+1. Logging in as Michy to get business ID...
+[OK] Found business 'Michy's Tech Hub' with ID: 3625fc62-82db-4eb7-ad3c-e07e8c4a6f64
 
 2. Fetching public business profile (without authentication headers)...
 Public Profile Response JSON:
 {
-  "business_name": "Kojo's Tech Hub",
+  "business_name": "Michy's Tech Hub",
   "category": "Electronics Shop",
   "location": "Adum, Kumasi, Ghana",
   "opening_hours": "Monday - Saturday: 8:00 AM - 6:00 PM",
@@ -118,6 +118,6 @@ Public Profile Response JSON:
 ### 2. Manual Front-End Verification
 1. Boot up the full-stack server using `npm run start` or running frontend + backend separately.
 2. Open `http://localhost:3000/chat/3625fc62-82db-4eb7-ad3c-e07e8c4a6f64` in your browser.
-3. Confirm the header shows **Kojo's Tech Hub**, **Electronics Shop**, and **Adum, Kumasi, Ghana**.
+3. Confirm the header shows **Michy's Tech Hub**, **Electronics Shop**, and **Adum, Kumasi, Ghana**.
 4. Click on any of the suggested questions (e.g. *Do you deliver?*). Verify that a customer bubble appears, a loading bubble flashes, and the AI replies with the catalog details.
 5. Resize your window to verify layout scaling on small mobile screens.

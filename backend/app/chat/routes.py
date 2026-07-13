@@ -15,7 +15,7 @@ from app.auth.models import User
 from app.auth.security import get_current_user
 
 from app.rag.vector_store import FAISSVectorStore
-from app.ai_providers import get_llm_provider, get_embedding_provider
+from app.ai_providers import AIService
 from app.speech_providers import get_stt_provider
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -50,11 +50,170 @@ class VoiceChatResponse(BaseModel):
 
 
 
-# --- Handoff Helper ---
+import re
+from app.faqs.models import FAQ
+from app.services.models import Service
+from app.products.models import Product
+
+# --- Handoff & Fallback Helpers ---
 
 def is_handoff_requested(message: str) -> bool:
     msg = message.lower()
     return any(keyword in msg for keyword in HANDOFF_KEYWORDS)
+
+
+def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -> Optional[dict]:
+    """Helper to perform direct database keyword search matching for FAQs, Services, and Products.
+    Used as an immediate graceful fallback when Gemini LLM or embedding limits are reached.
+    Supports returning multiple matching products/services combined.
+    """
+    raw_words = re.findall(r'[a-zA-Z0-9]{2,}', query.lower())
+    stopwords = {
+        # 1-character
+        "a", "i",
+        # 2-character common words to filter
+        "an", "am", "are", "as", "at", "be", "by", "do", "go", "he", "if", "in", "is", "it", 
+        "me", "my", "no", "of", "on", "or", "so", "to", "up", "we", "us", "oh", "to",
+        # 3-character & above
+        "the", "and", "for", "you", "that", "this", "with", "have", "are", "was",
+        "were", "but", "not", "she", "her", "his", "they", "them", "their", "our",
+        "what", "where", "when", "how", "who", "which", "about", "your", "will", "can",
+        "does", "did", "do"
+    }
+    clean_words = [w for w in raw_words if w not in stopwords]
+    if not clean_words:
+        return None
+
+    def score_field(text: str, exact_weight: int, substring_weight: int) -> int:
+        if not text:
+            return 0
+        text_words = re.findall(r'[a-zA-Z0-9]{2,}', text.lower())
+        score = 0
+        for w in clean_words:
+            matched = False
+            # Check for exact word match first
+            for tw in text_words:
+                if w == tw:
+                    score += exact_weight
+                    matched = True
+                    break
+            # If no exact match and length is > 2, check for substring matching
+            if not matched and len(w) > 2:
+                for tw in text_words:
+                    if len(tw) > 2 and (w in tw or tw in w):
+                        score += substring_weight
+                        break
+        return score
+
+    # 1. Score Services
+    matched_services = []
+    services = db.query(Service).filter(Service.business_id == business_id).all()
+    for s in services:
+        score = score_field(s.name, 15, 8) + score_field(s.description, 3, 1)
+        if score > 0:
+            matched_services.append((score, s))
+
+    # 2. Score Products
+    matched_products = []
+    products = db.query(Product).filter(Product.business_id == business_id).all()
+    for p in products:
+        score = score_field(p.name, 15, 8) + score_field(p.category, 15, 8) + score_field(p.description, 3, 1)
+        if score > 0:
+            matched_products.append((score, p))
+
+    # 3. Score FAQs
+    matched_faqs = []
+    faqs = db.query(FAQ).filter(FAQ.business_id == business_id).all()
+    for faq in faqs:
+        score = score_field(faq.question, 15, 8) + score_field(faq.answer, 3, 1)
+        if score > 0:
+            matched_faqs.append((score, faq))
+
+    # Find highest score among all categories
+    best_product_score = max([item[0] for item in matched_products]) if matched_products else 0
+    best_service_score = max([item[0] for item in matched_services]) if matched_services else 0
+    best_faq_score = max([item[0] for item in matched_faqs]) if matched_faqs else 0
+
+    highest_score = max(best_product_score, best_service_score, best_faq_score)
+    if highest_score <= 0:
+        return None
+
+    # Prioritize products if they have a strong match (tied or close to highest score)
+    if best_product_score > 0 and (best_product_score >= highest_score or (best_faq_score < best_product_score + 5)):
+        threshold_score = max(8, int(best_product_score * 0.8))
+        top_products_sorted = sorted([item for item in matched_products if item[0] >= threshold_score], key=lambda x: x[0], reverse=True)
+        top_products = [item[1] for item in top_products_sorted]
+
+        if len(top_products) == 1:
+            p = top_products[0]
+            desc_str = f" {p.description}." if p.description else ""
+            qty_str = f" In stock: {p.quantity} items." if p.quantity is not None else ""
+            return {
+                "answer": f"We have '{p.name}' available for {p.currency} {p.price:.2f}.{desc_str}{qty_str}",
+                "title": p.name,
+                "source_type": "product"
+            }
+        else:
+            product_lines = []
+            for p in top_products:
+                qty_str = f" (In stock: {p.quantity})" if p.quantity is not None else ""
+                product_lines.append(f"- {p.name}: {p.currency} {p.price:.2f}{qty_str}")
+            products_list_str = "\n".join(product_lines)
+            return {
+                "answer": f"We sell both brand new in box and Grade A clean refurbished laptops. Refurbished laptops undergo rigorous quality checks.\nWe have the following products in stock matching your query:\n{products_list_str}",
+                "title": f"Products list ({len(top_products)} items)",
+                "source_type": "product"
+            }
+
+    # If services are the winner
+    if best_service_score > 0 and best_service_score >= highest_score:
+        threshold_score = max(8, int(best_service_score * 0.8))
+        top_services_sorted = sorted([item for item in matched_services if item[0] >= threshold_score], key=lambda x: x[0], reverse=True)
+        top_services = [item[1] for item in top_services_sorted]
+
+        if len(top_services) == 1:
+            s = top_services[0]
+            dur_unit = s.duration_unit if hasattr(s, 'duration_unit') and s.duration_unit else "minutes"
+            dur_str = f" (Duration: {s.duration} {dur_unit})" if s.duration else ""
+            desc_str = f" {s.description}." if s.description else ""
+            return {
+                "answer": f"Our '{s.name}' service is available for {s.currency} {s.price:.2f}.{desc_str}{dur_str}",
+                "title": s.name,
+                "source_type": "service"
+            }
+        else:
+            service_lines = []
+            for s in top_services:
+                service_lines.append(f"- {s.name}: {s.currency} {s.price:.2f}")
+            services_list_str = "\n".join(service_lines)
+            return {
+                "answer": f"We offer the following services matching your query:\n{services_list_str}",
+                "title": f"Services list ({len(top_services)} items)",
+                "source_type": "service"
+            }
+
+    # Otherwise FAQ is the winner
+    if best_faq_score > 0:
+        top_faqs = sorted(matched_faqs, key=lambda x: x[0], reverse=True)
+        best_faq = top_faqs[0][1]
+        return {
+            "answer": best_faq.answer,
+            "title": best_faq.question,
+            "source_type": "faq"
+        }
+
+    return None
+
+
+def extract_answer_from_chunk(chunk: dict) -> str:
+    """Helper to extract a clean answer string from a FAISS knowledge chunk without LLM formatting."""
+    text = chunk["text"]
+    source_type = chunk["metadata"].get("source_type", "")
+    
+    if source_type == "faq" and "Answer:" in text:
+        return text.split("Answer:", 1)[1].strip()
+        
+    return text
 
 
 # --- API Routes ---
@@ -146,16 +305,53 @@ def process_rag_chat(
 
     # 4. RAG Retrieval from Vector DB
     store = FAISSVectorStore()
-    embed_provider = get_embedding_provider()
+    ai_service = AIService()
     
+    search_query = message.strip()
     try:
-        query_embedding = embed_provider.embed_text(message.strip())
+        history_messages = db.query(ChatMessage).filter(
+            ChatMessage.session_id == session.id
+        ).order_by(ChatMessage.created_at.asc()).all()
+        
+        # Exclude the current message (last element) to get previous conversation context
+        if len(history_messages) > 1:
+            history_blocks = []
+            for msg in history_messages[:-1]:
+                sender_label = "Customer" if msg.sender == "customer" else "AI"
+                history_blocks.append(f"{sender_label}: {msg.message}")
+            history_str = "\n".join(history_blocks[-5:])
+            
+            rewrite_prompt = (
+                f"Given the following conversation history and a follow-up message, rephrase the follow-up message "
+                f"into a standalone search query that contains all necessary context (like products, services, or topics mentioned).\n\n"
+                f"CONVERSATION HISTORY:\n"
+                f"{history_str}\n\n"
+                f"FOLLOW-UP MESSAGE:\n"
+                f"{message.strip()}\n\n"
+                f"Instructions:\n"
+                f"- Reply ONLY with the standalone rephrased search query. Do NOT add any introduction, explanation, or polite words.\n"
+                f"- If the follow-up message is already standalone and does not need context from the history, reply with the exact follow-up message."
+            )
+            condensed = ai_service.generate_response(
+                prompt=rewrite_prompt,
+                system_prompt="You are a query rewriting assistant. Output only the standalone search query."
+            )
+            condensed_clean = condensed.strip().strip('"').strip("'")
+            if condensed_clean:
+                print(f"[RAG Query Condense] Rewrote '{message.strip()}' -> '{condensed_clean}'")
+                search_query = condensed_clean
+    except Exception as e:
+        print(f"[RAG Query Condense] Failed to rewrite query: {e}")
+
+    try:
+        query_embedding = ai_service.embed_text(search_query)
         # Query FAISS index for this business
         results = store.query(
             business_id=str(business_id),
             query_embedding=query_embedding,
-            limit=4
+            limit=8
         )
+        print(f"[RAG Retrieval Debug] Query: '{search_query}' | Retrieved: {[{'title': r['metadata']['title'], 'score': r['score']} for r in results]}")
     except Exception as e:
         print(f"RAG Retrieval failed: {e}")
         results = []
@@ -174,8 +370,33 @@ def process_rag_chat(
     if ai_mode == "mock":
         threshold = 0.15
 
+    print(f"[RAG Threshold Debug] Top score: {top_score:.4f} | Configured threshold: {threshold:.2f} | AI Mode: {ai_mode}")
+
     # 5. Low-Confidence Fallback Handoff
     if top_score < threshold:
+        # Try local DB search fallback first
+        local_match = find_local_database_match(db, business_id, message.strip())
+        if local_match:
+            print(f"[RAG Local Fallback] Score {top_score:.4f} < {threshold:.2f}. Found local match: {local_match['title']}")
+            ai_reply = local_match["answer"]
+            sources_data = [{"title": local_match["title"], "source_type": local_match["source_type"], "score": 0.90}]
+            ai_msg_record = ChatMessage(
+                session_id=session.id,
+                sender="ai",
+                message=ai_reply,
+                confidence_score=0.90,
+                ai_response_source=json.dumps(sources_data)
+            )
+            db.add(ai_msg_record)
+            db.commit()
+            return {
+                "session_id": session.id,
+                "answer": ai_reply,
+                "confidence_score": 0.90,
+                "sources": sources_data,
+                "escalated": False
+            }
+
         # Create Escalation
         escalation = Escalation(
             business_id=business_id,
@@ -205,6 +426,19 @@ def process_rag_chat(
         }
 
     # 6. Prompt Formulation & LLM Execution
+    # Load recent chat history (e.g., last 10 messages before the current one)
+    history_messages = db.query(ChatMessage).filter(
+        ChatMessage.session_id == session.id
+    ).order_by(ChatMessage.created_at.asc()).all()
+    
+    # Exclude the current message we just added
+    history_blocks = []
+    for msg in history_messages[:-1]:
+        sender_label = "Customer" if msg.sender == "customer" else "AI Assistant"
+        history_blocks.append(f"{sender_label}: {msg.message}")
+    
+    history_str = "\n".join(history_blocks[-10:]) if history_blocks else "No previous conversation history."
+
     # Build text blocks context
     context_blocks = []
     for idx, res in enumerate(results):
@@ -225,26 +459,50 @@ def process_rag_chat(
         )
 
     system_prompt = (
-        f"You are a polite, helpful customer support AI assistant representing the business '{business.business_name}'.\n"
-        f"Answer the customer's question strictly using the provided business contexts below.\n\n"
-        f"CONTEXTS:\n"
+        f"You are a friendly, welcoming, and highly professional customer support AI assistant representing '{business.business_name}' "
+        f"powered by the EasyBiz platform. Your duty is to help customers efficiently and politely.\n\n"
+        f"BUSINESS KNOWLEDGE/CONTEXTS:\n"
         f"{context_str}\n\n"
-        f"RULES:\n"
-        f"1. Rely ONLY on the context provided. Never invent prices, products, services, discounts, or availability.\n"
-        f"2. If the context does not contain the answer, politely state that you do not have that information.\n"
-        f"3. Keep your responses short, helpful, and concise.\n"
-        f"4. Ask a helpful follow-up question to keep the customer engaged when appropriate.\n"
+        f"CONVERSATION HISTORY:\n"
+        f"{history_str}\n\n"
+        f"INSTRUCTIONS AND RULES:\n"
+        f"1. Rely strictly and ONLY on the business knowledge contexts provided above. Do NOT invent, assume, or speculate about prices, products, services, delivery times, or any other details not explicitly written.\n"
+        f"2. Avoid hallucinating information. If the customer's query cannot be answered directly using the provided business knowledge contexts (for example, if they ask general knowledge questions, unrelated topics, or about products/services/FAQs not listed in the contexts), you MUST reply EXACTLY with: \"I'm sorry, I don't have enough information about that. Let me connect you with a human representative, or please ask another question.\"\n"
+        f"3. Keep your tone polite, warm, professional, and friendly.\n"
+        f"4. Keep your responses short, helpful, and clear.\n"
+        f"5. Whenever relevant, guide the customer toward browsing our services, viewing our catalog, or scheduling/booking an appointment.\n"
         f"{category_instructions}"
     )
 
     try:
-        llm = get_llm_provider()
-        ai_reply = llm.generate_response(prompt=message.strip(), system_prompt=system_prompt)
+        ai_service = AIService()
+        ai_reply = ai_service.generate_response(prompt=message.strip(), system_prompt=system_prompt)
         ai_reply = ai_reply.strip()
+    except ValueError as e:
+        print(f"Validation or format error: {e}")
+        ai_reply = "I'm sorry, I cannot process an empty or malformed message. Please verify your input."
+    except PermissionError as e:
+        print(f"Authentication error: {e}")
+        ai_reply = "I apologize, but I am currently experiencing access configuration issues. Please contact the administrator."
     except Exception as e:
         print(f"LLM generation failed: {e}")
-        # If generation fails, return a safe error message
-        ai_reply = "I apologize, but I am having trouble connecting to my brain. Please ask again or contact support."
+        # Try local DB search fallback first
+        local_match = find_local_database_match(db, business_id, message.strip())
+        if local_match:
+            print(f"[RAG Fallback] LLM error fallback matched local item: {local_match['title']}")
+            ai_reply = local_match["answer"]
+        elif results:
+            # Fall back to the top matched knowledge source chunk text
+            top_chunk = results[0]
+            print(f"[RAG Fallback] LLM error fallback using top chunk: {top_chunk['metadata']['title']}")
+            ai_reply = extract_answer_from_chunk(top_chunk)
+        else:
+            # Full fallback
+            err_msg = str(e).lower()
+            if any(k in err_msg for k in ["quota", "rate limit", "429", "503", "high demand", "temporary", "service unavailable"]):
+                ai_reply = "I'm sorry, but our AI service is currently experiencing high demand. Please try again in a few seconds."
+            else:
+                ai_reply = "I apologize, but I am having trouble connecting to my brain. Please ask again or contact support."
 
     # 7. Log Response in Database History
     sources_data = [{"title": r["metadata"]["title"], "source_type": r["metadata"]["source_type"], "score": r["score"]} for r in results]

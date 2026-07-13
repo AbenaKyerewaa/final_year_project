@@ -103,15 +103,120 @@ export default function ProductsList() {
     }
   };
 
+  // Helper to get business type text
+  const getProductCategoryText = () => {
+    if (!activeBusiness) return {
+      title: "Product Catalog",
+      addBtn: "+ Add Product",
+      importTitle: "Bulk Import Products (CSV)",
+      downloadLabel: "Download the default products template format:",
+      filename: "products_template.csv"
+    };
+    const category = (activeBusiness.category || "").toLowerCase();
+    if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+      return {
+        title: "School Inventory & Fees",
+        addBtn: "+ Add Item / Fee",
+        importTitle: "Bulk Import School Items (CSV)",
+        downloadLabel: "Download the default school items template format:",
+        filename: "school_items_template.csv"
+      };
+    } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return {
+        title: "Restaurant Menu",
+        addBtn: "+ Add Menu Item",
+        importTitle: "Bulk Import Menu Items (CSV)",
+        downloadLabel: "Download the default menu template format:",
+        filename: "menu_template.csv"
+      };
+    } else if (category.includes("pharmacy") || category.includes("dispensary") || category.includes("medical") || category.includes("clinic")) {
+      return {
+        title: "Pharmacy Catalog & Drugs",
+        addBtn: "+ Add Drug / Medicine",
+        importTitle: "Bulk Import Pharmacy Catalog (CSV)",
+        downloadLabel: "Download the default pharmacy template format:",
+        filename: "pharmacy_template.csv"
+      };
+    }
+    return {
+      title: "Product Catalog",
+      addBtn: "+ Add Product",
+      importTitle: "Bulk Import Products (CSV)",
+      downloadLabel: "Download the default products template format:",
+      filename: "products_template.csv"
+    };
+  };
+
+  const textMapping = getProductCategoryText();
+
+  const showWarranty = !activeBusiness || !(
+    activeBusiness.category.toLowerCase().includes("school") ||
+    activeBusiness.category.toLowerCase().includes("education") ||
+    activeBusiness.category.toLowerCase().includes("academy") ||
+    activeBusiness.category.toLowerCase().includes("food") ||
+    activeBusiness.category.toLowerCase().includes("beverage") ||
+    activeBusiness.category.toLowerCase().includes("restaurant") ||
+    activeBusiness.category.toLowerCase().includes("cafe") ||
+    activeBusiness.category.toLowerCase().includes("pharmacy") ||
+    activeBusiness.category.toLowerCase().includes("dispensary") ||
+    activeBusiness.category.toLowerCase().includes("medical") ||
+    activeBusiness.category.toLowerCase().includes("clinic")
+  );
+
+  const getQuantityUnit = () => {
+    if (!activeBusiness) return "unit(s)";
+    const category = (activeBusiness.category || "").toLowerCase();
+    if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+      return "plate(s)";
+    }
+    return "unit(s)";
+  };
+
   const downloadProductTemplate = () => {
-    const headers = "name,category,description,price,currency,quantity,availability_status,warranty\n";
-    const row1 = "HP EliteBook 840 G6,Laptops,Core i5 8GB 256GB SSD,4200,GHS,5,available,3 months\n";
-    const row2 = "Wireless Mouse,Accessories,Ergonomic 2.4GHz mouse,85,GHS,20,available,No warranty\n";
+    let headers = "name,category,description,price,currency,quantity,availability_status,warranty\n";
+    let row1 = "HP EliteBook 840 G6,Laptops,Core i5 8GB 256GB SSD,4200,GHS,5,available,3 months\n";
+    let row2 = "Wireless Mouse,Accessories,Ergonomic 2.4GHz mouse,85,GHS,20,available,No warranty\n";
+    
+    if (activeBusiness) {
+      const category = (activeBusiness.category || "").toLowerCase();
+      if (category.includes("education") || category.includes("school") || category.includes("academy")) {
+        headers = "name,category,description,price,currency,quantity,availability_status\n";
+        row1 = "School Uniform Set,Apparel,Official Grace Academy uniform set,250,GHS,100,available\n";
+        row2 = "Textbook Set (Grade 1-6),Books,GES syllabus textbooks,450,GHS,50,available\n";
+      } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
+        headers = "name,category,description,price,currency,quantity,availability_status\n";
+        row1 = "Jollof Rice with Grilled Chicken,Main Dish,Spiced Jollof rice with grilled chicken,65,GHS,100,available\n";
+        row2 = "Kelewele,Side Dish,Spicy deep-fried plantain,25,GHS,200,available\n";
+      } else if (category.includes("pharmacy") || category.includes("dispensary") || category.includes("medical") || category.includes("clinic")) {
+        headers = "name,category,description,price,currency,quantity,availability_status\n";
+        row1 = "Paracetamol Tablets,Medication,Pack of 10 generic paracetamol tablets for pain relief and fever.,5,GHS,100,available\n" +
+               "Amoxicillin Capsules,Prescription,500mg Amoxicillin antibiotic capsules. Requires a valid doctor's prescription.,15,GHS,50,available\n" +
+               "Pediatric Cough Syrup,Medication,Cough syrup for children relief of dry and tickly coughs. 100ml bottle.,35,GHS,25,available\n" +
+               "Ibuprofen Tablets,Medication,200mg ibuprofen pain relief tablets. Pack of 20.,8,GHS,80,available\n" +
+               "Cetirizine Hydrochloride,Medication,10mg cetirizine allergy relief tablets. Pack of 10.,12,GHS,60,available\n" +
+               "Metformin Hydrochloride,Prescription,500mg metformin tablets for type 2 diabetes management. Pack of 100.,22,GHS,120,available\n" +
+               "Atorvastatin Tablets,Prescription,20mg atorvastatin cholesterol-lowering tablets. Pack of 30.,45,GHS,40,available\n" +
+               "Amoxicillin-Clavulanate,Prescription,625mg co-amoxiclav tablets. Broad spectrum antibiotic. Pack of 14.,60,GHS,30,available\n" +
+               "Multivitamin Tablets,Medication,Daily multivitamin and mineral supplements for adults. 30 tablets.,18,GHS,150,available\n" +
+               "Antacid Oral Suspension,Medication,Fast relief from acid indigestion and heartburn. 200ml bottle.,25,GHS,35,available\n" +
+               "Salbutamol Inhaler,Prescription,100mcg salbutamol inhaler for asthma relief. 200 doses.,55,GHS,15,available\n" +
+               "Omeprazole Capsules,Prescription,20mg omeprazole gastro-resistant capsules for acid reflux. Pack of 28.,30.05,GHS,90,available\n" +
+               "Vitamin C Chewable,Medication,500mg Vitamin C chewable tablets for immune support. Orange flavor. Pack of 100.,10,GHS,200,available\n" +
+               "Paracetamol Suspension,Medication,Pediatric paracetamol suspension for pain and fever relief. Strawberry flavor. 100ml.,15,GHS,75,available\n" +
+               "Folic Acid Tablets,Medication,5mg folic acid supplements for pregnancy and general health. Pack of 100.,6,GHS,180,available\n" +
+               "Amlodipine Tablets,Prescription,5mg amlodipine tablets for high blood pressure control. Pack of 28.,25,GHS,100,available\n" +
+               "Zinc Tablets,Medication,20mg zinc supplements for immune health and diarrhea treatment. Pack of 30.,14,GHS,85,available\n" +
+               "Oral Rehydration Salts,Medication,ORS sachets for rehydration during diarrhea and vomiting. Pack of 10 sachets.,3.5,GHS,300,available\n" +
+               "Diclofenac Gel,Medication,1% diclofenac sodium topical gel for joint and muscle pain relief. 50g tube.,20,GHS,40,available\n";
+        row2 = "Azithromycin Tablets,Prescription,500mg azithromycin antibiotic tablets. Pack of 3.,50,GHS,25,available\n";
+      }
+    }
+    
     const blob = new Blob([headers + row1 + row2], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "products_template.csv");
+    link.setAttribute("download", textMapping.filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -130,15 +235,15 @@ export default function ProductsList() {
   // 2. Zero-state business context warning
   if (!activeBusiness) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/10 gap-5 max-w-xl mx-auto mt-10">
-        <div className="w-14 h-14 rounded-2xl bg-amber-955/20 text-amber-500 border border-amber-900/30 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/10 gap-5 max-w-xl mx-auto mt-10">
+        <div className="w-14 h-14 rounded-2xl bg-amber-950/20 text-amber-500 border border-amber-900/30 flex items-center justify-center">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-lg font-bold text-slate-200">No Active Business Selected</h3>
-          <p className="text-xs text-slate-450 leading-relaxed max-w-sm">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Active Business Selected</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
             Please register or select an active business profile from the sidebar console before managing products.
           </p>
         </div>
@@ -156,10 +261,10 @@ export default function ProductsList() {
     <div className="flex flex-col gap-6">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Product Catalog</h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">{textMapping.title}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Manage inventory and pricing scoped under <span className="text-blue-400 font-semibold">{activeBusiness.business_name}</span>.
           </p>
         </div>
@@ -167,39 +272,39 @@ export default function ProductsList() {
           href="/dashboard/products/create"
           className="px-4 py-2.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white text-center hover:shadow-lg hover:shadow-blue-500/20 active:translate-y-0.5 transition duration-200"
         >
-          + Add Product
+          {textMapping.addBtn}
         </Link>
       </div>
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 text-xs text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
 
       {/* CSV Import Panel */}
-      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/10 backdrop-blur-xl shadow-lg p-5 flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-slate-850 pb-3 cursor-pointer select-none" onClick={() => setShowImportPanel(!showImportPanel)}>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-900/10 backdrop-blur-xl shadow-lg p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 cursor-pointer select-none" onClick={() => setShowImportPanel(!showImportPanel)}>
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-405" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            <h3 className="text-sm font-bold text-slate-200">Bulk Import Products (CSV)</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{textMapping.importTitle}</h3>
           </div>
-          <span className="text-xs text-slate-500 hover:text-slate-350 font-medium">
+          <span className="text-xs text-slate-500 hover:text-slate-600 dark:text-slate-350 font-medium">
             {showImportPanel ? "Collapse [-]" : "Expand [+]"}
           </span>
         </div>
 
         {showImportPanel && (
           <div className="flex flex-col gap-4 mt-2">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs bg-slate-950/40 p-3 rounded-lg border border-slate-900/60">
-              <span className="text-slate-400">Download the default products template format:</span>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs bg-slate-100 dark:bg-slate-950/40 p-3 rounded-lg border border-slate-900/60">
+              <span className="text-slate-500 dark:text-slate-400">{textMapping.downloadLabel}</span>
               <button
                 type="button"
                 onClick={downloadProductTemplate}
-                className="px-3.5 py-1.5 rounded bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-300 font-semibold cursor-pointer transition text-xs shrink-0"
+                className="px-3.5 py-1.5 rounded bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-700 hover:text-white text-slate-700 dark:text-slate-300 font-semibold cursor-pointer transition text-xs shrink-0"
               >
                 Download CSV Template
               </button>
@@ -216,7 +321,7 @@ export default function ProductsList() {
                     setImportSummary(null);
                   }
                 }}
-                className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600/30 file:cursor-pointer cursor-pointer"
+                className="text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600/30 file:cursor-pointer cursor-pointer"
               />
             </div>
 
@@ -226,9 +331,9 @@ export default function ProductsList() {
                 id="reindex_chk"
                 checked={reindexAfterImport}
                 onChange={(e) => setReindexAfterImport(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-800 bg-slate-950/40 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                className="w-4 h-4 rounded border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
               />
-              <label htmlFor="reindex_chk" className="text-xs text-slate-400 select-none cursor-pointer">
+              <label htmlFor="reindex_chk" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer">
                 Rebuild search index immediately after successful import
               </label>
             </div>
@@ -251,26 +356,26 @@ export default function ProductsList() {
 
             {importSummary && (
               <div className="mt-4 border-t border-slate-900/60 pt-4 flex flex-col gap-3 text-xs">
-                <h4 className="font-bold text-slate-200 uppercase tracking-wider text-[10px]">Import Results Summary:</h4>
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[10px]">Import Results Summary:</h4>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-slate-950/40 border border-slate-900/60 p-2.5 rounded-lg flex flex-col items-center">
+                  <div className="bg-slate-100 dark:bg-slate-950/40 border border-slate-900/60 p-2.5 rounded-lg flex flex-col items-center">
                     <span className="text-[10px] text-slate-500 uppercase font-semibold">Total Rows</span>
-                    <span className="text-lg font-extrabold text-slate-200 mt-1">{importSummary.total_rows}</span>
+                    <span className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-1">{importSummary.total_rows}</span>
                   </div>
-                  <div className="bg-emerald-955/10 border border-emerald-900/30 p-2.5 rounded-lg flex flex-col items-center">
+                  <div className="bg-emerald-950/10 border border-emerald-900/30 p-2.5 rounded-lg flex flex-col items-center">
                     <span className="text-[10px] text-emerald-500/70 uppercase font-semibold">Successful</span>
-                    <span className="text-lg font-extrabold text-emerald-450 mt-1">{importSummary.successful_rows}</span>
+                    <span className="text-lg font-extrabold text-emerald-400 mt-1">{importSummary.successful_rows}</span>
                   </div>
-                  <div className="bg-rose-955/10 border border-rose-900/30 p-2.5 rounded-lg flex flex-col items-center">
+                  <div className="bg-rose-950/10 border border-rose-900/30 p-2.5 rounded-lg flex flex-col items-center">
                     <span className="text-[10px] text-rose-500/70 uppercase font-semibold">Failed</span>
-                    <span className="text-lg font-extrabold text-rose-455 mt-1">{importSummary.failed_rows}</span>
+                    <span className="text-lg font-extrabold text-rose-500 mt-1">{importSummary.failed_rows}</span>
                   </div>
                 </div>
 
                 {importSummary.errors.length > 0 && (
                   <div className="flex flex-col gap-2 mt-2">
-                    <span className="text-rose-450 font-bold">Row-level errors / warnings:</span>
-                    <div className="bg-rose-955/5 border border-rose-900/20 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-[11px] text-rose-350 leading-relaxed space-y-1">
+                    <span className="text-rose-500 font-bold">Row-level errors / warnings:</span>
+                    <div className="bg-rose-950/5 border border-rose-900/20 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-[11px] text-rose-350 leading-relaxed space-y-1">
                       {importSummary.errors.map((err: string, eIdx: number) => (
                         <div key={eIdx}>• {err}</div>
                       ))}
@@ -289,49 +394,51 @@ export default function ProductsList() {
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : products.length > 0 ? (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-950/10 backdrop-blur-md shadow-lg">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/10 backdrop-blur-md shadow-lg">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
                 <th className="py-4 px-6">Product Details</th>
                 <th className="py-4 px-6">Category</th>
                 <th className="py-4 px-6">Price</th>
                 <th className="py-4 px-6">Quantity</th>
-                <th className="py-4 px-6">Warranty</th>
+                {showWarranty && <th className="py-4 px-6">Warranty</th>}
                 <th className="py-4 px-6 text-center">Status</th>
                 <th className="py-4 px-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850/60">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
               {products.map((product) => {
                 const isWorking = actionId === product.id;
                 const isOutOfStock = product.availability_status === 'out_of_stock' || product.quantity <= 0;
                 const isLimited = product.availability_status === 'limited';
 
                 return (
-                  <tr key={product.id} className="hover:bg-slate-900/20 transition duration-150">
+                  <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition duration-150">
                     <td className="py-4 px-6">
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-200 text-sm">{product.name}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{product.name}</span>
                         {product.description && (
-                          <span className="text-[11px] text-slate-450 mt-0.5 line-clamp-1 max-w-xs">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 max-w-xs">
                             {product.description}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-slate-300 font-medium">
+                    <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium">
                       {product.category || "—"}
                     </td>
-                    <td className="py-4 px-6 text-slate-200 font-semibold">
+                    <td className="py-4 px-6 text-slate-800 dark:text-slate-200 font-semibold">
                       {product.currency} {parseFloat(product.price.toString()).toFixed(2)}
                     </td>
-                    <td className="py-4 px-6 text-slate-350">
-                      {product.quantity} unit(s)
+                    <td className="py-4 px-6 text-slate-600 dark:text-slate-350">
+                      {product.quantity} {getQuantityUnit()}
                     </td>
-                    <td className="py-4 px-6 text-slate-400">
-                      {product.warranty || "—"}
-                    </td>
+                    {showWarranty && (
+                      <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
+                        {product.warranty || "—"}
+                      </td>
+                    )}
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center">
                         <button
@@ -357,7 +464,7 @@ export default function ProductsList() {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/dashboard/products/${product.id}/edit`}
-                          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/20 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 transition"
                           title="Edit Product"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -367,7 +474,7 @@ export default function ProductsList() {
                         <button
                           onClick={() => handleDelete(product.id, product.name)}
                           disabled={isWorking}
-                          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/20 text-rose-500/80 hover:text-rose-455 hover:bg-rose-955/10 transition disabled:opacity-50"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/20 text-rose-500/80 hover:text-rose-500 hover:bg-rose-950/10 transition disabled:opacity-50"
                           title="Delete Product"
                         >
                           {isWorking ? (
@@ -388,15 +495,15 @@ export default function ProductsList() {
         </div>
       ) : (
         /* Zero state products list */
-        <div className="flex flex-col items-center justify-center p-16 text-center rounded-2xl border border-dashed border-slate-800/80 bg-slate-950/10 gap-5 mt-4">
-          <div className="w-14 h-14 rounded-2xl bg-blue-955/20 text-blue-450 border border-blue-900/30 flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center p-16 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/10 gap-5 mt-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-950/20 text-blue-400 border border-blue-900/30 flex items-center justify-center">
             <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
           </div>
           <div className="flex flex-col gap-1.5 max-w-sm">
-            <h3 className="text-lg font-bold text-slate-200">No Products Registered</h3>
-            <p className="text-xs text-slate-450 leading-relaxed">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Products Registered</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Register electronic wares, merchandise, or inventory assets to feed context into your SME's RAG chatbot.
             </p>
           </div>

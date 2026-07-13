@@ -42,10 +42,10 @@ export default function BusinessList() {
     <div className="flex flex-col gap-6">
       
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Business Profiles</h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Business Profiles</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Manage your registered SME profiles. Scoping controls which business is currently managed.
           </p>
         </div>
@@ -59,7 +59,7 @@ export default function BusinessList() {
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 text-xs text-rose-455 bg-rose-955/20 border border-rose-900/50 rounded-lg">
+        <div className="p-3 text-xs text-rose-500 bg-rose-950/20 border border-rose-900/50 rounded-lg">
           <span className="font-semibold">Error:</span> {error}
         </div>
       )}
@@ -96,15 +96,15 @@ export default function BusinessList() {
                   <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
                     {biz.category}
                   </span>
-                  <h3 className="text-lg font-bold text-slate-200 leading-tight">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 leading-tight">
                     {biz.business_name}
                   </h3>
-                  <p className="text-xs text-slate-450 line-clamp-2 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
                     {biz.description || "No description provided."}
                   </p>
                   
                   {/* Small metadata details */}
-                  <div className="flex flex-col gap-1 mt-2 text-[11px] text-slate-400">
+                  <div className="flex flex-col gap-1 mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-600">Location:</span>
                       <span className="truncate">{biz.location}</span>
@@ -126,7 +126,7 @@ export default function BusinessList() {
                   ) : (
                     <button
                       onClick={() => handleActivate(biz.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900/20 text-slate-300 hover:text-white hover:bg-slate-800 transition duration-200"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-slate-900/20 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-800 transition duration-200"
                     >
                       Select Active
                     </button>
@@ -135,7 +135,7 @@ export default function BusinessList() {
                   <div className="ml-auto flex items-center gap-2">
                     <Link
                       href={`/dashboard/businesses/${biz.id}/edit`}
-                      className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/10 text-slate-400 hover:text-white hover:bg-slate-800 transition duration-200"
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/10 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 transition duration-200"
                       title="Edit business profile"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -145,7 +145,7 @@ export default function BusinessList() {
                     <button
                       onClick={() => handleDelete(biz.id, biz.business_name)}
                       disabled={isDeleting}
-                      className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/10 text-rose-500/80 hover:text-rose-455 hover:bg-rose-955/10 transition duration-200 disabled:opacity-50"
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/10 text-rose-500/80 hover:text-rose-500 hover:bg-rose-950/10 transition duration-200 disabled:opacity-50"
                       title="Delete business profile"
                     >
                       {isDeleting ? (
@@ -165,8 +165,8 @@ export default function BusinessList() {
         </div>
       ) : (
         /* Zero state fallback */
-        <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800/80 bg-slate-950/10 gap-4 mt-4">
-          <p className="text-sm text-slate-450">No business profiles created yet.</p>
+        <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/10 gap-4 mt-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">No business profiles created yet.</p>
           <Link
             href="/dashboard/businesses/create"
             className="px-5 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white"

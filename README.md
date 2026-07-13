@@ -24,8 +24,8 @@ EasyBiz AI is a premium, full-stack enterprise web application designed for Ghan
 *   **Backend**: FastAPI 0.103 (Python 3.11, Uvicorn)
 *   **Database**: PostgreSQL / SQLite (SQLAlchemy ORM & Alembic migrations)
 *   **Vector Database**: FAISS (Facebook AI Similarity Search)
-*   **Embeddings**: Sentence Transformers (`all-MiniLM-L6-v2`) or OpenAI / Gemini
-*   **LLM Providers**: Local/Offline (Ollama with Mistral/Llama) or Cloud API (OpenAI GPT-4o-mini, Google Gemini, Groq)
+*   **Embeddings**: Google Gemini (`text-embedding-004`), OpenAI (`text-embedding-3-small`), or Sentence Transformers (`all-MiniLM-L6-v2`)
+*   **LLM Providers**: Google Gemini (`gemini-1.5-flash`), OpenAI (`gpt-4o-mini`), or Groq
 *   **STT Provider**: Local Whisper / Mock Speech-to-Text Abstraction
 
 ---
@@ -71,33 +71,24 @@ EasyBiz-ai/
 
 ## 📖 Choosing Your AI Mode
 
-EasyBiz AI is built on a provider abstraction that supports two primary execution environments, configurable via `backend/.env`:
+EasyBiz AI is built on a provider abstraction that is configurable via `backend/.env`:
 
-### 1. Local / Offline AI Mode (No internet required)
-Perfect for bandwidth-constrained setups or private local deployments:
-*   Install [Ollama](https://ollama.com) on the host machine.
-*   Pull Mistral and nomic-embed-text:
-    ```bash
-    ollama pull mistral
-    ollama pull nomic-embed-text
-    ```
-*   Set environment variables:
-    ```ini
-    AI_MODE=local
-    OLLAMA_BASE_URL=http://localhost:11434
-    OLLAMA_LLM_MODEL=mistral
-    OLLAMA_EMBED_MODEL=nomic-embed-text
-    ```
-
-### 2. API-Based Cloud AI Mode
-High quality, production-grade output using managed cloud models:
-*   Set environment variables:
+### 1. Cloud API AI Mode (Google Gemini Default)
+High quality, production-grade output using managed cloud models (Google Gemini API):
+*   Set environment variables in `backend/.env`:
     ```ini
     AI_MODE=api
-    AI_API_PROVIDER=openai # or gemini
-    AI_API_KEY=your_openai_or_gemini_key
-    AI_LLM_MODEL=gpt-4o-mini
-    AI_EMBED_MODEL=text-embedding-3-small
+    AI_API_PROVIDER=gemini
+    GEMINI_API_KEY=your_gemini_api_key
+    AI_LLM_MODEL=gemini-1.5-flash
+    AI_EMBED_MODEL=text-embedding-004
+    ```
+
+### 2. Fallback Mock AI Mode
+For local development and offline testing without API charges, use the mock fallback:
+*   Set environment variables:
+    ```ini
+    AI_MODE=mock
     ```
 
 ---
@@ -145,7 +136,7 @@ graph TD
     pip install -r requirements.txt
     ```
 4.  Copy `.env.example` to `.env` and configure credentials.
-5.  Seed database (Kojo's Tech Hub, MelTech Computers, Grace Academy, Akwaaba Restaurant):
+5.  Seed database (Michy's Tech Hub, MelTech Computers, Grace Academy, Akwaaba Restaurant):
     ```bash
     python app/database/seed.py
     ```

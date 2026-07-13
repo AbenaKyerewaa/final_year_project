@@ -74,14 +74,14 @@ export default function ChatHistory() {
 
   if (!activeBusiness) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-800/80 bg-slate-950/10 backdrop-blur-xl gap-4">
-        <div className="w-12 h-12 rounded-full bg-slate-900/40 text-slate-400 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/10 backdrop-blur-xl gap-4">
+        <div className="w-12 h-12 rounded-full bg-slate-900/40 text-slate-500 dark:text-slate-400 flex items-center justify-center">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <h3 className="text-lg font-bold text-slate-200">No Active Business Profile Selected</h3>
-        <p className="text-xs text-slate-455 max-w-sm leading-relaxed">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Active Business Profile Selected</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
           Please select or create an active business profile from the sidebar menu to view conversation logs.
         </p>
       </div>
@@ -100,10 +100,10 @@ export default function ChatHistory() {
     <div className="flex flex-col gap-6">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-5 gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-3">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-extrabold text-white">Conversation Logs & Escalations</h2>
-          <p className="text-xs text-slate-400 mt-1">Review live chat logs, inspect AI outputs, and resolve handoff requests for <strong>{activeBusiness.business_name}</strong>.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Conversation Logs & Escalations</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Review live chat logs, inspect AI outputs, and resolve handoff requests for <strong>{activeBusiness.business_name}</strong>.</p>
         </div>
       </div>
 
@@ -114,7 +114,7 @@ export default function ChatHistory() {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-800/80 gap-6">
+      <div className="flex border-b border-slate-200 dark:border-slate-800/80 gap-6">
         <button
           onClick={() => setActiveTab('sessions')}
           className={`pb-3 text-sm font-semibold transition cursor-pointer relative ${
@@ -146,11 +146,11 @@ export default function ChatHistory() {
       {/* Content views */}
       {activeTab === 'sessions' ? (
         sessions.length > 0 ? (
-          <div className="overflow-hidden border border-slate-800/60 rounded-xl bg-slate-950/10 backdrop-blur-md">
+          <div className="overflow-hidden border border-slate-200 dark:border-slate-800/60 rounded-xl bg-slate-50 dark:bg-slate-950/10 backdrop-blur-md">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-850 bg-slate-900/40 text-slate-400 font-semibold uppercase tracking-wider">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                     <th className="px-6 py-4">Customer</th>
                     <th className="px-6 py-4">Channel</th>
                     <th className="px-6 py-4">Latest Message</th>
@@ -159,13 +159,13 @@ export default function ChatHistory() {
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-850">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {sessions.map((sess) => (
                     <tr 
                       key={sess.id}
                       className="hover:bg-slate-900/30 transition cursor-pointer"
                     >
-                      <td className="px-6 py-4 font-bold text-slate-200">
+                      <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">
                         {sess.customer_name || 'Anonymous Guest'}
                         {sess.customer_phone && (
                           <div className="text-[10px] text-slate-500 font-normal mt-0.5">{sess.customer_phone}</div>
@@ -182,20 +182,20 @@ export default function ChatHistory() {
                           {sess.channel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-300 max-w-xs truncate font-medium">
+                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300 max-w-xs truncate font-medium">
                         {sess.latest_message || <span className="text-slate-500 italic">No messages</span>}
                       </td>
-                      <td className="px-6 py-4 text-slate-450 font-medium">
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">
                         {formatDate(sess.created_at)}
                       </td>
                       <td className="px-6 py-4">
                         {sess.escalation_status ? (
                           <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-widest ${
                             sess.escalation_status === 'pending'
-                              ? 'bg-amber-955/20 text-amber-500 border-amber-900/30 animate-pulse'
+                              ? 'bg-amber-950/20 text-amber-500 border-amber-900/30 animate-pulse'
                               : sess.escalation_status === 'resolved'
-                              ? 'bg-emerald-955/20 text-emerald-400 border-emerald-900/30'
-                              : 'bg-slate-850/60 text-slate-500 border-slate-800'
+                              ? 'bg-emerald-950/20 text-emerald-400 border-emerald-900/30'
+                              : 'bg-slate-800/60 text-slate-500 border-slate-800'
                           }`}>
                             {sess.escalation_status === 'pending' ? 'Escalated' : sess.escalation_status}
                           </span>
@@ -218,18 +218,18 @@ export default function ChatHistory() {
             </div>
           </div>
         ) : (
-          <div className="p-8 text-center border border-slate-850 bg-slate-950/5 rounded-xl">
-            <p className="text-slate-400 text-xs font-semibold">No conversation logs exist for this business profile yet.</p>
+          <div className="p-8 text-center border border-slate-200 dark:border-slate-800 bg-slate-950/5 rounded-xl">
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold">No conversation logs exist for this business profile yet.</p>
           </div>
         )
       ) : (
         /* Escalations Tab */
         escalations.length > 0 ? (
-          <div className="overflow-hidden border border-slate-800/60 rounded-xl bg-slate-950/10 backdrop-blur-md">
+          <div className="overflow-hidden border border-slate-200 dark:border-slate-800/60 rounded-xl bg-slate-50 dark:bg-slate-950/10 backdrop-blur-md">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-850 bg-slate-900/40 text-slate-400 font-semibold uppercase tracking-wider">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                     <th className="px-6 py-4">Customer</th>
                     <th className="px-6 py-4">Reason for Handoff</th>
                     <th className="px-6 py-4">Trigger Date</th>
@@ -237,36 +237,36 @@ export default function ChatHistory() {
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-850">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {escalations.map((esc) => (
                     <tr 
                       key={esc.id}
                       className="hover:bg-slate-900/30 transition cursor-pointer"
                     >
-                      <td className="px-6 py-4 font-bold text-slate-200">
+                      <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">
                         {esc.customer_name || 'Anonymous Guest'}
                         {esc.customer_phone && (
-                          <div className="text-[10px] text-slate-550 font-normal mt-0.5">{esc.customer_phone}</div>
+                          <div className="text-[10px] text-slate-500 font-normal mt-0.5">{esc.customer_phone}</div>
                         )}
                         <div className="mt-1">
-                          <span className="px-2 py-0.5 rounded text-[8px] bg-slate-900 text-slate-400 font-semibold border border-slate-850 uppercase">
+                          <span className="px-2 py-0.5 rounded text-[8px] bg-slate-900 text-slate-500 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-800 uppercase">
                             {esc.channel}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-300 max-w-sm truncate font-medium">
+                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300 max-w-sm truncate font-medium">
                         {esc.reason || 'Requested manual assistance'}
                       </td>
-                      <td className="px-6 py-4 text-slate-450 font-medium">
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">
                         {formatDate(esc.created_at)}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-widest ${
                           esc.status === 'pending'
-                            ? 'bg-amber-955/20 text-amber-500 border-amber-900/30'
+                            ? 'bg-amber-950/20 text-amber-500 border-amber-900/30'
                             : esc.status === 'resolved'
-                            ? 'bg-emerald-955/20 text-emerald-400 border-emerald-900/30'
-                            : 'bg-slate-850/60 text-slate-500 border-slate-800'
+                            ? 'bg-emerald-950/20 text-emerald-400 border-emerald-900/30'
+                            : 'bg-slate-800/60 text-slate-500 border-slate-800'
                         }`}>
                           {esc.status}
                         </span>
@@ -294,8 +294,8 @@ export default function ChatHistory() {
             </div>
           </div>
         ) : (
-          <div className="p-8 text-center border border-slate-850 bg-slate-950/5 rounded-xl">
-            <p className="text-slate-400 text-xs font-semibold">No escalations registered for this business profile.</p>
+          <div className="p-8 text-center border border-slate-200 dark:border-slate-800 bg-slate-950/5 rounded-xl">
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold">No escalations registered for this business profile.</p>
           </div>
         )
       )}

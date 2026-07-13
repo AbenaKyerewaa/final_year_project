@@ -2,7 +2,7 @@ import requests
 import random
 import sys
 
-API_URL = "http://localhost:8000"
+API_URL = "http://127.0.0.1:8000"
 
 def run_manual_flow_tests():
     print("=== STARTING EASYBIZ AI MANUAL FLOWS INTEGRATION TESTS ===")

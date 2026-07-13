@@ -12,13 +12,12 @@ This document tracks the architectural details, configurations, and verification
     *   This establishes a standard interface for all AI interactions, ensuring the codebase is provider-agnostic.
 
 2.  **AI Provider Implementations:**
-    *   **Local Ollama Provider:** Connects to local Ollama API instances via HTTP (`/api/chat` and `/api/embeddings`).
-    *   **Cloud API Provider:** Standard HTTP client compatible with OpenAI and OpenAI-compatible platforms (such as Groq, OpenRouter) and native Google Gemini API payloads.
+    *   **Cloud API Provider:** Native Google Gemini API payloads, as well as OpenAI and OpenAI-compatible platforms (such as Groq, OpenRouter).
     *   **Fallback Mock Provider:** Generates deterministic mock text and normalize L2 vectors of size `1536` for local testing without cloud credentials or offline dependencies.
 
 3.  **Provider Factory & Fallbacks:**
     *   Implemented `get_llm_provider()` and `get_embedding_provider()` in `factory.py`.
-    *   Decides provider type based on `AI_MODE` env variable (`local`, `api`, `mock`).
+    *   Decides provider type based on `AI_MODE` env variable (`api`, `mock`).
     *   Catches connection errors or missing credential states and gracefully logs a warning, falling back to the `Mock` provider to prevent application startup crashes.
 
 4.  **Test Endpoints:**
@@ -30,27 +29,19 @@ This document tracks the architectural details, configurations, and verification
 
 Switching between AI operation modes is handled strictly by setting environment variables in `backend/.env`.
 
-### 1. Offline / Local Mode (Ollama)
-Configure Ollama locally, then set:
-```env
-AI_MODE=local
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_LLM_MODEL=mistral         # (or gemma, llama3, etc.)
-OLLAMA_EMBED_MODEL=nomic-embed-text
-```
-
-### 2. API Mode (Cloud Services)
-Provide your cloud credentials and model definitions:
+### 1. API Mode (Google Gemini Default)
+Provide your Gemini API credentials and model definitions (or configure OpenAI/Groq if preferred):
 ```env
 AI_MODE=api
-AI_API_PROVIDER=openai           # (options: openai, gemini, groq, openrouter)
-AI_API_KEY=your-api-key-here
+AI_API_PROVIDER=gemini           # (options: gemini, openai, groq, openrouter)
+GEMINI_API_KEY=your-gemini-api-key-here
+AI_API_KEY=                      # (or fallback key for other providers)
 AI_API_BASE_URL=                 # (optional: custom endpoint for proxies)
-AI_LLM_MODEL=gpt-4o-mini
-AI_EMBED_MODEL=text-embedding-3-small
+AI_LLM_MODEL=gemini-1.5-flash
+AI_EMBED_MODEL=text-embedding-004
 ```
 
-### 3. Fallback / Simulation Mode
+### 2. Fallback / Simulation Mode
 ```env
 AI_MODE=mock
 ```
@@ -63,14 +54,8 @@ AI_MODE=mock
 graph TD
     Factory[Factory Loader] -->|Reads AI_MODE| Env{Config Selector}
     
-    Env -->|local| Ollama[Ollama Provider]
     Env -->|api| Cloud[Cloud API Provider]
     Env -->|mock / fallback| Mock[Mock Provider]
-    
-    subgraph Local LLM / Vector
-        Ollama -->|/api/chat| OllamaLLM[Ollama Chat API]
-        Ollama -->|/api/embeddings| OllamaEmbed[Ollama Embeddings API]
-    end
     
     subgraph Cloud API Gateway
         Cloud -->|/v1/chat/completions| OpenAICompat[OpenAI / Groq / OpenRouter]

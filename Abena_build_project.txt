@@ -1,5 +1,5 @@
 Below are 15 phased prompts you can give to any agentic IDE like Cursor, Claude Code, Windsurf, Replit Agent, etc. Each phase is written as a builder prompt, so you can copy and paste phase by phase.
-I designed it so the builder can choose whether to use offline AI with Ollama/local models or API-based AI like OpenAI/Gemini/Groq.
+I designed it so the builder can choose whether to use API-based AI like Google Gemini, OpenAI, or Groq.
 ________________________________________
 Phase 1 Prompt: Project Setup and Architecture
 You are building an AI-powered local business assistant for Ghanaian SMEs.
@@ -8,9 +8,9 @@ Project name: BizMate AI
 
 Build a full-stack web application where business owners can upload their business information, products, services, prices, FAQs, and documents. Customers can then ask questions through a chatbot, and the AI answers using Retrieval-Augmented Generation.
 
-The system must support both possible AI modes:
-1. Offline/local AI mode using Ollama or local models.
-2. API-based AI mode using OpenAI, Gemini, Groq, Claude, or another provider.
+The system must support two possible AI modes:
+1. API-based AI mode using Google Gemini, OpenAI, Groq, Claude, or another provider.
+2. Fallback mock AI mode for development.
 
 Do not hardcode one AI provider. Create an AI provider abstraction so the builder can choose later through environment variables.
 
@@ -450,28 +450,19 @@ class BaseEmbeddingProvider:
 
 Implement provider options:
 
-1. Local Ollama provider
-- For generation: use Ollama chat/generate endpoint.
-- For embeddings: use Ollama embedding model if configured.
-- Configurable through .env:
-  AI_MODE=local
-  OLLAMA_BASE_URL=http://localhost:11434
-  OLLAMA_LLM_MODEL=
-  OLLAMA_EMBED_MODEL=
-
-2. API provider placeholder
+1. API provider placeholder (Google Gemini Default)
 - Build a generic structure for API-based LLMs.
-- Add support for at least one provider if easy, such as OpenAI-compatible, Groq, Gemini, or OpenRouter.
+- Add support for Google Gemini API payloads, and compatibility with OpenAI-compatible APIs (like Groq, OpenAI).
 - Configurable through .env:
   AI_MODE=api
-  AI_API_PROVIDER=
+  AI_API_PROVIDER=gemini
   AI_API_KEY=
   AI_API_BASE_URL=
-  AI_LLM_MODEL=
-  AI_EMBED_MODEL=
+  AI_LLM_MODEL=gemini-1.5-flash
+  AI_EMBED_MODEL=text-embedding-004
 
-3. Fallback mock provider
-- Used for testing if no AI key or local model is available.
+2. Fallback mock provider
+- Used for testing if no AI key is available.
 - Returns simple deterministic responses for development.
 
 Tasks:

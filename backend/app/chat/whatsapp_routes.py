@@ -126,7 +126,7 @@ def get_whatsapp_config(
         "verifyToken": os.getenv("WHATSAPP_VERIFY_TOKEN", ""),
         "phoneNumberId": os.getenv("WHATSAPP_PHONE_NUMBER_ID", ""),
         "businessNumber": os.getenv("WHATSAPP_BUSINESS_NUMBER", ""),
-        "backendWebhookUrl": "http://localhost:8000/webhooks/whatsapp"
+        "backendWebhookUrl": "http://127.0.0.1:8000/webhooks/whatsapp"
     }
 
 @router.get("", response_class=PlainTextResponse)

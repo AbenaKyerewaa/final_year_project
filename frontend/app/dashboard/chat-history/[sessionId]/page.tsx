@@ -106,10 +106,10 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
     return (
       <div className="p-6 max-w-md mx-auto text-center flex flex-col gap-4">
         <h3 className="text-lg font-bold text-rose-500">Error Loading Session</h3>
-        <p className="text-xs text-slate-400">{error || "The session details could not be found."}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{error || "The session details could not be found."}</p>
         <button
           onClick={() => router.push('/dashboard/chat-history')}
-          className="px-4 py-2 rounded bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-semibold cursor-pointer"
+          className="px-4 py-2 rounded bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-700 text-xs font-semibold cursor-pointer"
         >
           Back to History
         </button>
@@ -121,10 +121,10 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
     <div className="max-w-4xl mx-auto flex flex-col gap-6">
       
       {/* Header with back navigation button */}
-      <div className="flex items-center gap-4 border-b border-slate-800 pb-5">
+      <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <button
           onClick={() => router.push('/dashboard/chat-history')}
-          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 text-slate-450 hover:text-white transition cursor-pointer"
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-white transition cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -132,10 +132,10 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
         </button>
         
         <div className="flex flex-col">
-          <h2 className="text-xl font-extrabold text-white">
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
             Transcript: {session.customer_name || 'Anonymous Guest'}
           </h2>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-slate-450">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
             <span>Session ID: {session.id}</span>
             <span>•</span>
             <span className="text-slate-500">{formatDate(session.created_at)}</span>
@@ -147,7 +147,7 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
 
       {/* Escalation Banner warning alert */}
       {session.escalation_status === 'pending' && (
-        <div className="p-4 rounded-xl border border-amber-900/50 bg-amber-955/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-4 rounded-xl border border-amber-900/50 bg-amber-950/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-amber-900/30 flex items-center justify-center text-amber-500 shrink-0">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -156,7 +156,7 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-bold text-amber-400">Escalated Handoff Active</span>
-              <span className="text-xs text-slate-350 mt-0.5">This session triggered an escalation because the customer requested human support or similarity confidence was too low.</span>
+              <span className="text-xs text-slate-600 dark:text-slate-350 mt-0.5">This session triggered an escalation because the customer requested human support or similarity confidence was too low.</span>
             </div>
           </div>
           <button
@@ -170,7 +170,7 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
       )}
 
       {/* Message List panel */}
-      <div className="flex flex-col gap-5 p-6 rounded-2xl border border-slate-800/60 bg-slate-950/20 backdrop-blur-xl shadow-lg">
+      <div className="flex flex-col gap-5 p-6 rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-950/20 backdrop-blur-xl shadow-lg">
         {session.messages.map((msg, index) => {
           const sourcesList = parseSources(msg.ai_response_source);
           return (
@@ -190,20 +190,20 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
                 className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.sender === 'customer'
                     ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-slate-900 border border-slate-850 text-slate-250 rounded-bl-none'
+                    : 'bg-slate-900 border border-slate-800 text-slate-250 rounded-bl-none'
                 }`}
               >
                 {msg.message}
               </div>
 
               {/* Message Footer metadata */}
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-550 px-1">
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-500 px-1">
                 <span>{formatDate(msg.created_at)}</span>
                 
                 {msg.sender === 'ai' && msg.confidence_score !== undefined && (
                   <>
                     <span>•</span>
-                    <span className={msg.confidence_score >= 0.5 ? 'text-emerald-450 font-medium' : 'text-rose-500 font-medium'}>
+                    <span className={msg.confidence_score >= 0.5 ? 'text-emerald-400 font-medium' : 'text-rose-500 font-medium'}>
                       Confidence: {msg.confidence_score.toFixed(3)}
                     </span>
                   </>
@@ -212,15 +212,15 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
 
               {/* Diagnostic Sources logs toggle */}
               {msg.sender === 'ai' && sourcesList.length > 0 && (
-                <details className="mt-2 text-[10px] text-slate-400 bg-slate-950/50 border border-slate-850 rounded-lg p-2 max-w-full w-full font-mono">
-                  <summary className="cursor-pointer font-bold text-slate-455 hover:text-slate-300 outline-none">
+                <details className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg p-2 max-w-full w-full font-mono">
+                  <summary className="cursor-pointer font-bold text-slate-400 hover:text-slate-700 dark:text-slate-300 outline-none">
                     Retrieved Knowledge Sources ({sourcesList.length})
                   </summary>
                   <div className="mt-2 space-y-2 border-t border-slate-900 pt-2">
                     {sourcesList.map((src, sIdx) => (
                       <div key={sIdx} className="flex justify-between items-center bg-slate-950/60 p-1.5 rounded border border-slate-900/60 gap-4">
-                        <span className="text-slate-300 font-bold truncate">{src.title}</span>
-                        <span className="text-[10px] font-semibold text-blue-450 shrink-0">
+                        <span className="text-slate-700 dark:text-slate-300 font-bold truncate">{src.title}</span>
+                        <span className="text-[10px] font-semibold text-blue-400 shrink-0">
                           Score: {src.score.toFixed(3)}
                         </span>
                       </div>
