@@ -645,7 +645,8 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 6: Voice Support */}
+            {/* Feature 6: Voice Support (Temporarily Disabled) */}
+            {/* 
             <div className="glass-panel rounded-2xl p-6 flex flex-col gap-4 glass-card-hover">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -657,6 +658,7 @@ export default function Home() {
                 Customers can send voice queries. The backend leverages local Whisper model configurations or cloud speech endpoints to transcribe voice and deliver accurate text replies.
               </p>
             </div>
+            */}
 
             {/* Feature 7: Escalations */}
             <div className="glass-panel rounded-2xl p-6 flex flex-col gap-4 glass-card-hover">

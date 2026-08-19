@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, use } from 'react';
 import { getPublicBusiness, BusinessPublicResponse } from '@/services/business';
-import { sendChatMessage, sendVoiceMessage } from '@/services/chat';
+import { sendChatMessage } from '@/services/chat';
 
 
 interface PageProps {
@@ -29,7 +29,8 @@ export default function CustomerChat({ params }: PageProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Voice recording states & refs
+  // Voice recording states & refs (Disabled for now)
+  /*
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingError, setRecordingError] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export default function CustomerChat({ params }: PageProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const isCancelledRef = useRef(false);
+  */
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -171,7 +173,8 @@ export default function CustomerChat({ params }: PageProps) {
     }
   };
 
-  // Helper to format recording seconds to MM:SS format
+  // Helper to format recording seconds to MM:SS format (Disabled for now)
+  /*
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -343,6 +346,7 @@ export default function CustomerChat({ params }: PageProps) {
       setSending(false);
     }
   };
+  */
 
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -480,85 +484,30 @@ export default function CustomerChat({ params }: PageProps) {
           </div>
         )}
 
-        {/* Recording Permission Error Alert */}
-        {recordingError && (
-          <div className="max-w-4xl mx-auto w-full px-4 py-2.5 bg-rose-950/20 border border-rose-900/40 rounded-xl flex items-center justify-between text-xs text-rose-300">
-            <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              {recordingError}
-            </span>
-            <button onClick={() => setRecordingError(null)} className="text-slate-400 hover:text-white font-bold text-sm leading-none ml-2">×</button>
-          </div>
-        )}
-
         {/* Input Form */}
-        {isRecording ? (
-          <div className="flex items-center justify-between gap-3 max-w-4xl mx-auto w-full bg-slate-900/60 border border-red-500/30 rounded-xl px-4 py-2.5 shadow-md backdrop-blur-sm animate-pulse">
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
-              <span className="text-sm font-semibold text-slate-200">
-                Recording... {formatTime(recordingDuration)}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={cancelRecording}
-                className="px-3.5 py-2 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800 text-xs text-slate-400 hover:text-rose-500 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={stopRecording}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-red-600/10 active:translate-y-0.5 transition"
-              >
-                <span className="w-2.5 h-2.5 bg-white rounded-sm"></span>
-                Stop & Send
-              </button>
-            </div>
+        <div className="flex items-end gap-2 max-w-4xl mx-auto w-full">
+          <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2 flex items-center focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
+            <textarea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Ask a question..."
+              rows={1}
+              className="flex-1 bg-transparent border-0 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-0 resize-none py-1.5 leading-relaxed"
+              style={{ maxHeight: '120px' }}
+            />
           </div>
-        ) : (
-          <div className="flex items-end gap-2 max-w-4xl mx-auto w-full">
-            <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2 flex items-center focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Ask a question..."
-                rows={1}
-                className="flex-1 bg-transparent border-0 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-0 resize-none py-1.5 leading-relaxed"
-                style={{ maxHeight: '120px' }}
-              />
-            </div>
-            
-            {/* Microphone Trigger Button */}
-            <button
-              onClick={startRecording}
-              disabled={sending}
-              className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-750 text-cyan-400 hover:text-cyan-300 flex items-center justify-center hover:bg-slate-800 active:translate-y-0.5 transition duration-150 disabled:opacity-40"
-              title="Record voice input"
-            >
-              <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            </button>
-            
-            <button
-              onClick={() => handleSendMessage(inputText)}
-              disabled={!inputText.trim() || sending}
-              className="p-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg hover:shadow-blue-500/20 active:translate-y-0.5 transition duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <svg className="w-4 h-4 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9-7-9-7v14z" />
-              </svg>
-            </button>
-          </div>
-        )}
+          
+          <button
+            onClick={() => handleSendMessage(inputText)}
+            disabled={!inputText.trim() || sending}
+            className="p-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg hover:shadow-blue-500/20 active:translate-y-0.5 transition duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            <svg className="w-4 h-4 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9-7-9-7v14z" />
+            </svg>
+          </button>
+        </div>
 
       </div>
       

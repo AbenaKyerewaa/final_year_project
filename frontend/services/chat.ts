@@ -167,6 +167,7 @@ export async function updateEscalationStatus(escalationId: string, status: strin
   return response.json();
 }
 
+/*
 export interface VoiceChatResponse {
   session_id: string;
   transcription: string;
@@ -176,9 +177,6 @@ export interface VoiceChatResponse {
   escalated: boolean;
 }
 
-/**
- * Sends a voice recording audio blob to the backend transcription and RAG chat flow.
- */
 export async function sendVoiceMessage(
   businessId: string,
   audioBlob: Blob,
@@ -218,5 +216,6 @@ export async function sendVoiceMessage(
 
   return response.json();
 }
+*/
 
 

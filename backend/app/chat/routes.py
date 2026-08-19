@@ -16,7 +16,7 @@ from app.auth.security import get_current_user
 
 from app.rag.vector_store import FAISSVectorStore
 from app.ai_providers import AIService
-from app.speech_providers import get_stt_provider
+# from app.speech_providers import get_stt_provider
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -40,13 +40,13 @@ class ChatResponse(BaseModel):
     sources: List[dict]
     escalated: bool
 
-class VoiceChatResponse(BaseModel):
-    session_id: uuid.UUID
-    transcription: str
-    answer: str
-    confidence_score: float
-    sources: List[dict]
-    escalated: bool
+# class VoiceChatResponse(BaseModel):
+#     session_id: uuid.UUID
+#     transcription: str
+#     answer: str
+#     confidence_score: float
+#     sources: List[dict]
+#     escalated: bool
 
 
 
@@ -555,84 +555,84 @@ def handle_chat_message(
 import tempfile
 import shutil
 
-@router.post("/{business_id}/voice", response_model=VoiceChatResponse)
-def handle_voice_chat(
-    business_id: uuid.UUID,
-    file: UploadFile = File(...),
-    session_id: Optional[uuid.UUID] = Form(None),
-    customer_name: Optional[str] = Form(None),
-    customer_phone: Optional[str] = Form(None),
-    channel: str = Form("voice"),
-    db: Session = Depends(get_db)
-):
-    """Customer-facing voice chat endpoint.
-    Uploads audio file, runs speech-to-text, feeds text to standard chat pipeline, and returns text answer + transcription.
-    """
-    # 1. Save uploaded file to a temporary location
-    suffix = os.path.splitext(file.filename)[1] if file.filename else ".webm"
-    if not suffix:
-        suffix = ".webm"
-    prefix = os.path.splitext(file.filename)[0] + "_" if file.filename else "voice_recording_"
-        
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, prefix=prefix, suffix=suffix) as temp_file:
-            shutil.copyfileobj(file.file, temp_file)
-            temp_path = temp_file.name
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create temporary file for voice recording: {e}"
-        )
-        
-    # 2. Transcribe voice file using configured speech-to-text provider
-    try:
-        stt_provider = get_stt_provider()
-        transcription = stt_provider.transcribe(temp_path)
-    except Exception as e:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Speech-to-text transcription failed: {e}"
-        )
-    finally:
-        # 3. Clean up the temporary file
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception as ex:
-                print(f"Warning: Failed to delete temp file {temp_path}: {ex}")
-
-    # 4. Check if transcription is empty
-    if not transcription or not transcription.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Speech-to-text transcription resulted in empty text. Please speak more clearly."
-        )
-
-    # 5. Call handle_chat_message to execute RAG retrieval and LLM response generation
-    chat_payload = ChatRequest(
-        message=transcription.strip(),
-        customer_name=customer_name,
-        customer_phone=customer_phone,
-        channel=channel,
-        session_id=session_id
-    )
-    
-    chat_res = handle_chat_message(
-        business_id=business_id,
-        payload=chat_payload,
-        db=db
-    )
-    
-    return VoiceChatResponse(
-        session_id=chat_res.session_id,
-        transcription=transcription.strip(),
-        answer=chat_res.answer,
-        confidence_score=chat_res.confidence_score,
-        sources=chat_res.sources,
-        escalated=chat_res.escalated
-    )
+# @router.post("/{business_id}/voice", response_model=VoiceChatResponse)
+# def handle_voice_chat(
+#     business_id: uuid.UUID,
+#     file: UploadFile = File(...),
+#     session_id: Optional[uuid.UUID] = Form(None),
+#     customer_name: Optional[str] = Form(None),
+#     customer_phone: Optional[str] = Form(None),
+#     channel: str = Form("voice"),
+#     db: Session = Depends(get_db)
+# ):
+#     """Customer-facing voice chat endpoint.
+#     Uploads audio file, runs speech-to-text, feeds text to standard chat pipeline, and returns text answer + transcription.
+#     """
+#     # 1. Save uploaded file to a temporary location
+#     suffix = os.path.splitext(file.filename)[1] if file.filename else ".webm"
+#     if not suffix:
+#         suffix = ".webm"
+#     prefix = os.path.splitext(file.filename)[0] + "_" if file.filename else "voice_recording_"
+#         
+#     try:
+#         with tempfile.NamedTemporaryFile(delete=False, prefix=prefix, suffix=suffix) as temp_file:
+#             shutil.copyfileobj(file.file, temp_file)
+#             temp_path = temp_file.name
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to create temporary file for voice recording: {e}"
+#         )
+#         
+#     # 2. Transcribe voice file using configured speech-to-text provider
+#     try:
+#         stt_provider = get_stt_provider()
+#         transcription = stt_provider.transcribe(temp_path)
+#     except Exception as e:
+#         if os.path.exists(temp_path):
+#             os.remove(temp_path)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Speech-to-text transcription failed: {e}"
+#         )
+#     finally:
+#         # 3. Clean up the temporary file
+#         if os.path.exists(temp_path):
+#             try:
+#                 os.remove(temp_path)
+#             except Exception as ex:
+#                 print(f"Warning: Failed to delete temp file {temp_path}: {ex}")
+# 
+#     # 4. Check if transcription is empty
+#     if not transcription or not transcription.strip():
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Speech-to-text transcription resulted in empty text. Please speak more clearly."
+#         )
+# 
+#     # 5. Call handle_chat_message to execute RAG retrieval and LLM response generation
+#     chat_payload = ChatRequest(
+#         message=transcription.strip(),
+#         customer_name=customer_name,
+#         customer_phone=customer_phone,
+#         channel=channel,
+#         session_id=session_id
+#     )
+#     
+#     chat_res = handle_chat_message(
+#         business_id=business_id,
+#         payload=chat_payload,
+#         db=db
+#     )
+#     
+#     return VoiceChatResponse(
+#         session_id=chat_res.session_id,
+#         transcription=transcription.strip(),
+#         answer=chat_res.answer,
+#         confidence_score=chat_res.confidence_score,
+#         sources=chat_res.sources,
+#         escalated=chat_res.escalated
+#     )
 
 
 # --- Dashboard API Router & Schemas ---

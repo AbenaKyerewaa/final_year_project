@@ -1,202 +1,1066 @@
 import os
-import uuid
+import json
 import requests
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
+
 from app.database.session import get_db
 from app.businesses.models import Business
 from app.chat.routes import process_rag_chat
 from app.auth.security import get_current_user
 from app.auth.models import User
 
-router = APIRouter(prefix="/webhooks/whatsapp", tags=["whatsapp"])
+
+router = APIRouter(
+    prefix="/webhooks/whatsapp",
+    tags=["whatsapp"]
+)
+
+
+# ============================================================
+# PHONE HELPERS
+# ============================================================
 
 def normalize_phone(phone: str) -> str:
     if not phone:
         return ""
-    return "".join(c for c in phone if c.isdigit())
+
+    return "".join(
+        c for c in str(phone)
+        if c.isdigit()
+    )
+
 
 def match_phone_numbers(phone1: str, phone2: str) -> bool:
     c1 = normalize_phone(phone1)
     c2 = normalize_phone(phone2)
+
     if not c1 or not c2:
         return False
+
+    # Exact match
     if c1 == c2:
         return True
-    # Ghanaian numbers match last 9 digits (e.g. 241234567)
+
+    # Ghana numbers:
+    # +233241234567
+    # 0241234567
+    # 241234567
+    #
+    # Compare final 9 digits.
     if len(c1) >= 9 and len(c2) >= 9:
         return c1[-9:] == c2[-9:]
+
     return False
 
-def get_business_by_whatsapp(db: Session, incoming_phone: str) -> Optional[Business]:
+
+# ============================================================
+# BUSINESS LOOKUP
+# ============================================================
+
+def get_business_by_whatsapp(
+    db: Session,
+    incoming_phone: str
+) -> Optional[Business]:
+
+    print(
+        "\n========== WHATSAPP BUSINESS LOOKUP ==========",
+        flush=True
+    )
+
+    print(
+        f"[WhatsApp DBG] Incoming Meta display number: "
+        f"'{incoming_phone}'",
+        flush=True
+    )
+
     all_businesses = db.query(Business).all()
-    print(f"[WhatsApp DBG] Incoming display phone number: '{incoming_phone}'")
-    print(f"[WhatsApp DBG] Total businesses in DB: {len(all_businesses)}")
-    
-    # 1. Match by whatsapp_number
-    for b in all_businesses:
-        print(f"[WhatsApp DBG] Checking business: '{b.business_name}' (ID: {b.id}), whatsapp_number: '{b.whatsapp_number}', phone: '{b.phone}'")
-        if b.whatsapp_number:
-            c1 = normalize_phone(b.whatsapp_number)
-            c2 = normalize_phone(incoming_phone)
-            matched = match_phone_numbers(b.whatsapp_number, incoming_phone)
-            print(f"[WhatsApp DBG] Comparing '{b.whatsapp_number}' (normalized: '{c1}') and '{incoming_phone}' (normalized: '{c2}'). Matched: {matched}")
+
+    print(
+        f"[WhatsApp DBG] Businesses found in database: "
+        f"{len(all_businesses)}",
+        flush=True
+    )
+
+    # --------------------------------------------------------
+    # 1. Match business.whatsapp_number
+    # --------------------------------------------------------
+
+    for business in all_businesses:
+
+        print(
+            f"[WhatsApp DBG] Checking: "
+            f"{business.business_name} | "
+            f"WhatsApp={business.whatsapp_number} | "
+            f"Phone={business.phone}",
+            flush=True
+        )
+
+        if business.whatsapp_number:
+
+            normalized_business = normalize_phone(
+                business.whatsapp_number
+            )
+
+            normalized_incoming = normalize_phone(
+                incoming_phone
+            )
+
+            matched = match_phone_numbers(
+                business.whatsapp_number,
+                incoming_phone
+            )
+
+            print(
+                f"[WhatsApp DBG] Compare WhatsApp numbers: "
+                f"{normalized_business} vs "
+                f"{normalized_incoming} => {matched}",
+                flush=True
+            )
+
             if matched:
-                print(f"[WhatsApp DBG] MATCHED by whatsapp_number: '{b.business_name}'")
-                return b
-                
-    # 2. Match by regular phone
-    for b in all_businesses:
-        if b.phone:
-            matched = match_phone_numbers(b.phone, incoming_phone)
+
+                print(
+                    f"[WhatsApp DBG] MATCHED business by "
+                    f"whatsapp_number: "
+                    f"{business.business_name}",
+                    flush=True
+                )
+
+                return business
+
+    # --------------------------------------------------------
+    # 2. Match normal business phone
+    # --------------------------------------------------------
+
+    for business in all_businesses:
+
+        if business.phone:
+
+            matched = match_phone_numbers(
+                business.phone,
+                incoming_phone
+            )
+
             if matched:
-                print(f"[WhatsApp DBG] MATCHED by regular phone: '{b.business_name}'")
-                return b
-                
-    # 3. Fallback to WHATSAPP_BUSINESS_NUMBER env var
-    env_num = os.getenv("WHATSAPP_BUSINESS_NUMBER")
-    if env_num:
-        print(f"[WhatsApp DBG] Checking env fallback WHATSAPP_BUSINESS_NUMBER: '{env_num}'")
-        for b in all_businesses:
-            if b.whatsapp_number and match_phone_numbers(b.whatsapp_number, env_num):
-                print(f"[WhatsApp DBG] MATCHED fallback by whatsapp_number: '{b.business_name}'")
-                return b
-            if b.phone and match_phone_numbers(b.phone, env_num):
-                print(f"[WhatsApp DBG] MATCHED fallback by regular phone: '{b.business_name}'")
-                return b
-                
-    # 4. Fallback to first business profile in database
-    fallback_biz = db.query(Business).first()
-    if fallback_biz:
-        print(f"[WhatsApp DBG] FALLING BACK to first business: '{fallback_biz.business_name}' (ID: {fallback_biz.id})")
-    else:
-        print(f"[WhatsApp DBG] NO BUSINESSES IN DATABASE TO FALL BACK TO.")
-    return fallback_biz
+
+                print(
+                    f"[WhatsApp DBG] MATCHED business by "
+                    f"regular phone: "
+                    f"{business.business_name}",
+                    flush=True
+                )
+
+                return business
+
+    # --------------------------------------------------------
+    # 3. Environment fallback
+    # --------------------------------------------------------
+
+    env_number = os.getenv(
+        "WHATSAPP_BUSINESS_NUMBER",
+        ""
+    )
+
+    if env_number:
+
+        print(
+            f"[WhatsApp DBG] Checking "
+            f"WHATSAPP_BUSINESS_NUMBER env: "
+            f"'{env_number}'",
+            flush=True
+        )
+
+        if match_phone_numbers(
+            env_number,
+            incoming_phone
+        ):
+
+            print(
+                "[WhatsApp DBG] Incoming number matches "
+                "WHATSAPP_BUSINESS_NUMBER.",
+                flush=True
+            )
+
+            # Find the business whose registered number
+            # corresponds to that environment number.
+            for business in all_businesses:
+
+                if (
+                    business.whatsapp_number
+                    and match_phone_numbers(
+                        business.whatsapp_number,
+                        env_number
+                    )
+                ):
+
+                    print(
+                        f"[WhatsApp DBG] MATCHED business "
+                        f"using env number: "
+                        f"{business.business_name}",
+                        flush=True
+                    )
+
+                    return business
+
+                if (
+                    business.phone
+                    and match_phone_numbers(
+                        business.phone,
+                        env_number
+                    )
+                ):
+
+                    print(
+                        f"[WhatsApp DBG] MATCHED business "
+                        f"using regular phone + env number: "
+                        f"{business.business_name}",
+                        flush=True
+                    )
+
+                    return business
+
+    # --------------------------------------------------------
+    # IMPORTANT:
+    # Do NOT silently use first business anymore.
+    # --------------------------------------------------------
+
+    print(
+        "[WhatsApp ERROR] Could not match incoming "
+        "WhatsApp display number to any business.",
+        flush=True
+    )
+
+    print(
+        "==============================================\n",
+        flush=True
+    )
+
+    return None
 
 
-def send_whatsapp_reply(recipient_phone: str, message_text: str):
-    whatsapp_mode = os.getenv("WHATSAPP_MODE", "simulation").lower()
+# ============================================================
+# SEND WHATSAPP MESSAGE
+# ============================================================
+
+def send_whatsapp_reply(
+    recipient_phone: str,
+    message_text: str
+):
+
+    whatsapp_mode = os.getenv(
+        "WHATSAPP_MODE",
+        "simulation"
+    ).lower()
+
+    print(
+        "\n========== WHATSAPP OUTGOING MESSAGE ==========",
+        flush=True
+    )
+
+    print(
+        f"[WhatsApp OUT] Mode: {whatsapp_mode}",
+        flush=True
+    )
+
+    print(
+        f"[WhatsApp OUT] Recipient: {recipient_phone}",
+        flush=True
+    )
+
+    print(
+        f"[WhatsApp OUT] Message: {message_text}",
+        flush=True
+    )
+
+    # --------------------------------------------------------
+    # Simulation
+    # --------------------------------------------------------
+
     if whatsapp_mode != "cloud_api":
-        print(f"[WhatsApp SIMULATION] Sending reply to {recipient_phone}: '{message_text}'")
+
+        print(
+            f"[WhatsApp SIMULATION] Would send reply to "
+            f"{recipient_phone}: '{message_text}'",
+            flush=True
+        )
+
         return True
 
-    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
-    access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
-    
-    if not phone_number_id or not access_token:
-        print("[WhatsApp ERROR] Access token or Phone Number ID not configured.")
+    # --------------------------------------------------------
+    # Cloud API
+    # --------------------------------------------------------
+
+    phone_number_id = os.getenv(
+        "WHATSAPP_PHONE_NUMBER_ID"
+    )
+
+    access_token = os.getenv(
+        "WHATSAPP_ACCESS_TOKEN"
+    )
+
+    if not phone_number_id:
+
+        print(
+            "[WhatsApp ERROR] "
+            "WHATSAPP_PHONE_NUMBER_ID is missing.",
+            flush=True
+        )
+
         return False
 
-    url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
+    if not access_token:
+
+        print(
+            "[WhatsApp ERROR] "
+            "WHATSAPP_ACCESS_TOKEN is missing.",
+            flush=True
+        )
+
+        return False
+
+    print(
+        f"[WhatsApp OUT] Using Phone Number ID: "
+        f"{phone_number_id}",
+        flush=True
+    )
+
+    # Do not print access token.
+
+    url = (
+        f"https://graph.facebook.com/"
+        f"v19.0/{phone_number_id}/messages"
+    )
+
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
+
     payload = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
-        "to": recipient_phone,
+        "to": normalize_phone(recipient_phone),
         "type": "text",
         "text": {
             "preview_url": False,
-            "body": message_text
-        }
+            "body": message_text,
+        },
     }
-    
+
+    print(
+        f"[WhatsApp OUT] Graph endpoint: {url}",
+        flush=True
+    )
+
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
-        if res.status_code in [200, 201]:
-            print(f"[WhatsApp] Reply sent successfully to {recipient_phone}")
+
+        response = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=20,
+        )
+
+        print(
+            f"[WhatsApp OUT] Meta response status: "
+            f"{response.status_code}",
+            flush=True
+        )
+
+        print(
+            f"[WhatsApp OUT] Meta response body: "
+            f"{response.text}",
+            flush=True
+        )
+
+        if response.status_code in (200, 201):
+
+            print(
+                f"[WhatsApp SUCCESS] Reply successfully "
+                f"sent to {recipient_phone}",
+                flush=True
+            )
+
             return True
-        else:
-            print(f"[WhatsApp ERROR] Facebook API returned {res.status_code}: {res.text}")
-            return False
-    except Exception as e:
-        print(f"[WhatsApp ERROR] Exception during API call: {e}")
+
+        print(
+            f"[WhatsApp ERROR] Facebook API error "
+            f"{response.status_code}: "
+            f"{response.text}",
+            flush=True
+        )
+
         return False
+
+    except requests.RequestException as exc:
+
+        print(
+            f"[WhatsApp ERROR] Graph API request failed: "
+            f"{exc}",
+            flush=True
+        )
+
+        return False
+
+    except Exception as exc:
+
+        print(
+            f"[WhatsApp ERROR] Unexpected outgoing "
+            f"message error: {exc}",
+            flush=True
+        )
+
+        return False
+
+
+# ============================================================
+# DASHBOARD WHATSAPP CONFIG
+# ============================================================
+
 @router.get("/config")
 def get_whatsapp_config(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+
+    # Set this on Render:
+    #
+    # BACKEND_PUBLIC_URL=https://your-api.onrender.com
+
+    backend_public_url = os.getenv(
+        "BACKEND_PUBLIC_URL",
+        "http://127.0.0.1:8000"
+    ).rstrip("/")
+
     return {
-        "whatsappMode": os.getenv("WHATSAPP_MODE", "simulation").lower(),
-        "verifyToken": os.getenv("WHATSAPP_VERIFY_TOKEN", ""),
-        "phoneNumberId": os.getenv("WHATSAPP_PHONE_NUMBER_ID", ""),
-        "businessNumber": os.getenv("WHATSAPP_BUSINESS_NUMBER", ""),
-        "backendWebhookUrl": "http://127.0.0.1:8000/webhooks/whatsapp"
+        "whatsappMode": os.getenv(
+            "WHATSAPP_MODE",
+            "simulation"
+        ).lower(),
+
+        "verifyTokenConfigured": bool(
+            os.getenv("WHATSAPP_VERIFY_TOKEN")
+        ),
+
+        "phoneNumberId": os.getenv(
+            "WHATSAPP_PHONE_NUMBER_ID",
+            ""
+        ),
+
+        "businessNumber": os.getenv(
+            "WHATSAPP_BUSINESS_NUMBER",
+            ""
+        ),
+
+        "backendWebhookUrl":
+            f"{backend_public_url}/webhooks/whatsapp",
     }
+
+
+# ============================================================
+# META WEBHOOK VERIFICATION
+# ============================================================
 
 @router.get("", response_class=PlainTextResponse)
 @router.get("/", response_class=PlainTextResponse)
 def verify_webhook(
-    hub_mode: Optional[str] = Query(None, alias="hub.mode"),
-    hub_challenge: Optional[str] = Query(None, alias="hub.challenge"),
-    hub_verify_token: Optional[str] = Query(None, alias="hub.verify_token")
-):
-    whatsapp_mode = os.getenv("WHATSAPP_MODE", "simulation").lower()
-    if whatsapp_mode == "disabled":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="WhatsApp is disabled")
 
-    verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
-    if hub_mode == "subscribe" and hub_verify_token == verify_token:
+    hub_mode: Optional[str] = Query(
+        None,
+        alias="hub.mode"
+    ),
+
+    hub_challenge: Optional[str] = Query(
+        None,
+        alias="hub.challenge"
+    ),
+
+    hub_verify_token: Optional[str] = Query(
+        None,
+        alias="hub.verify_token"
+    ),
+):
+
+    print(
+        "\n========== WHATSAPP WEBHOOK VERIFY ==========",
+        flush=True
+    )
+
+    print(
+        f"[WhatsApp VERIFY] mode={hub_mode}",
+        flush=True
+    )
+
+    print(
+        f"[WhatsApp VERIFY] challenge="
+        f"{hub_challenge}",
+        flush=True
+    )
+
+    whatsapp_mode = os.getenv(
+        "WHATSAPP_MODE",
+        "simulation"
+    ).lower()
+
+    if whatsapp_mode == "disabled":
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WhatsApp is disabled",
+        )
+
+    verify_token = os.getenv(
+        "WHATSAPP_VERIFY_TOKEN",
+        ""
+    )
+
+    if (
+        hub_mode == "subscribe"
+        and hub_verify_token == verify_token
+    ):
+
+        print(
+            "[WhatsApp VERIFY] Webhook verification "
+            "SUCCESS.",
+            flush=True
+        )
+
         return hub_challenge
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification token mismatch")
+
+    print(
+        "[WhatsApp VERIFY] Verification FAILED.",
+        flush=True
+    )
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Verification token mismatch",
+    )
+
+
+# ============================================================
+# RECEIVE META WHATSAPP WEBHOOK
+# ============================================================
 
 @router.post("")
 @router.post("/")
-async def receive_webhook(request: Request, db: Session = Depends(get_db)):
-    whatsapp_mode = os.getenv("WHATSAPP_MODE", "simulation").lower()
+async def receive_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+
+    # ========================================================
+    # THIS MUST BE THE FIRST LOG
+    # ========================================================
+
+    print(
+        "\n\n"
+        "##################################################",
+        flush=True
+    )
+
+    print(
+        "### WHATSAPP POST WEBHOOK HIT ###",
+        flush=True
+    )
+
+    print(
+        f"Request URL: {request.url}",
+        flush=True
+    )
+
+    print(
+        f"Request method: {request.method}",
+        flush=True
+    )
+
+    print(
+        "##################################################",
+        flush=True
+    )
+
+    whatsapp_mode = os.getenv(
+        "WHATSAPP_MODE",
+        "simulation"
+    ).lower()
+
+    print(
+        f"[WhatsApp WEBHOOK] Current mode: "
+        f"{whatsapp_mode}",
+        flush=True
+    )
+
     if whatsapp_mode == "disabled":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="WhatsApp is disabled")
+
+        print(
+            "[WhatsApp WEBHOOK] WhatsApp disabled.",
+            flush=True
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WhatsApp is disabled",
+        )
+
+    # ========================================================
+    # READ RAW REQUEST
+    # ========================================================
 
     try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
-    if payload.get("object") != "whatsapp_business_account":
-        return {"status": "ignored", "reason": "not a whatsapp business account"}
+        raw_body = await request.body()
 
-    for entry in payload.get("entry", []):
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
-            metadata = value.get("metadata", {})
-            display_phone_number = metadata.get("display_phone_number", "")
-            
-            # Extract contacts
-            contacts = value.get("contacts", [])
+        print(
+            "[WhatsApp WEBHOOK] Raw body:",
+            flush=True
+        )
+
+        print(
+            raw_body.decode(
+                "utf-8",
+                errors="replace"
+            ),
+            flush=True
+        )
+
+    except Exception as exc:
+
+        print(
+            f"[WhatsApp ERROR] Could not read raw body: "
+            f"{exc}",
+            flush=True
+        )
+
+        return {"status": "error"}
+
+    # ========================================================
+    # JSON PARSE
+    # ========================================================
+
+    try:
+
+        payload = json.loads(raw_body)
+
+    except Exception as exc:
+
+        print(
+            f"[WhatsApp ERROR] Invalid JSON: {exc}",
+            flush=True
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        )
+
+    print(
+        "[WhatsApp WEBHOOK] Parsed payload:",
+        flush=True
+    )
+
+    print(
+        json.dumps(
+            payload,
+            indent=2
+        ),
+        flush=True
+    )
+
+    # ========================================================
+    # CHECK OBJECT TYPE
+    # ========================================================
+
+    object_type = payload.get("object")
+
+    print(
+        f"[WhatsApp WEBHOOK] object={object_type}",
+        flush=True
+    )
+
+    if object_type != "whatsapp_business_account":
+
+        print(
+            "[WhatsApp WEBHOOK] Ignoring payload because "
+            "object is not whatsapp_business_account.",
+            flush=True
+        )
+
+        return {
+            "status": "ignored",
+            "reason": "not a whatsapp business account",
+        }
+
+    entries = payload.get("entry", [])
+
+    print(
+        f"[WhatsApp WEBHOOK] Entries found: "
+        f"{len(entries)}",
+        flush=True
+    )
+
+    # ========================================================
+    # PROCESS ENTRIES
+    # ========================================================
+
+    for entry_index, entry in enumerate(entries):
+
+        print(
+            f"[WhatsApp WEBHOOK] Processing entry "
+            f"{entry_index + 1}",
+            flush=True
+        )
+
+        changes = entry.get(
+            "changes",
+            []
+        )
+
+        print(
+            f"[WhatsApp WEBHOOK] Changes found: "
+            f"{len(changes)}",
+            flush=True
+        )
+
+        for change_index, change in enumerate(changes):
+
+            print(
+                f"[WhatsApp WEBHOOK] Processing change "
+                f"{change_index + 1}",
+                flush=True
+            )
+
+            print(
+                f"[WhatsApp WEBHOOK] Change field: "
+                f"{change.get('field')}",
+                flush=True
+            )
+
+            value = change.get(
+                "value",
+                {}
+            )
+
+            metadata = value.get(
+                "metadata",
+                {}
+            )
+
+            display_phone_number = metadata.get(
+                "display_phone_number",
+                ""
+            )
+
+            meta_phone_number_id = metadata.get(
+                "phone_number_id",
+                ""
+            )
+
+            print(
+                f"[WhatsApp WEBHOOK] Meta display number: "
+                f"{display_phone_number}",
+                flush=True
+            )
+
+            print(
+                f"[WhatsApp WEBHOOK] Meta phone_number_id: "
+                f"{meta_phone_number_id}",
+                flush=True
+            )
+
+            # =================================================
+            # CONTACT INFORMATION
+            # =================================================
+
+            contacts = value.get(
+                "contacts",
+                []
+            )
+
             customer_name = "WhatsApp Customer"
-            if contacts:
-                customer_name = contacts[0].get("profile", {}).get("name", "WhatsApp Customer")
 
-            messages = value.get("messages", [])
-            for msg in messages:
-                if msg.get("type") == "text":
-                    body = msg.get("text", {}).get("body", "")
-                    sender_phone = msg.get("from", "")
-                    
-                    # 1. Identify business
-                    business = get_business_by_whatsapp(db, display_phone_number)
-                    if not business:
-                        print(f"[WhatsApp Webhook] Business not found for display number: {display_phone_number}", flush=True)
-                        continue
-                    
-                    print(f"[WhatsApp Webhook] Matched business: {business.business_name} (ID: {business.id})", flush=True)
-                    
-                    # 2. Process message using RAG chat pipeline (channel = whatsapp)
-                    res = process_rag_chat(
+            if contacts:
+
+                customer_name = (
+                    contacts[0]
+                    .get("profile", {})
+                    .get(
+                        "name",
+                        "WhatsApp Customer"
+                    )
+                )
+
+            print(
+                f"[WhatsApp WEBHOOK] Customer name: "
+                f"{customer_name}",
+                flush=True
+            )
+
+            # =================================================
+            # MESSAGES
+            # =================================================
+
+            messages = value.get(
+                "messages",
+                []
+            )
+
+            print(
+                f"[WhatsApp WEBHOOK] Messages found: "
+                f"{len(messages)}",
+                flush=True
+            )
+
+            # Status events also hit this webhook.
+            if not messages:
+
+                statuses = value.get(
+                    "statuses",
+                    []
+                )
+
+                if statuses:
+
+                    print(
+                        "[WhatsApp WEBHOOK] This is a "
+                        "message-status event, not a new "
+                        "customer message.",
+                        flush=True
+                    )
+
+                    print(
+                        json.dumps(
+                            statuses,
+                            indent=2
+                        ),
+                        flush=True
+                    )
+
+                continue
+
+            # =================================================
+            # PROCESS CUSTOMER MESSAGES
+            # =================================================
+
+            for msg_index, msg in enumerate(messages):
+
+                print(
+                    f"\n[WhatsApp WEBHOOK] Processing "
+                    f"message {msg_index + 1}",
+                    flush=True
+                )
+
+                message_type = msg.get(
+                    "type",
+                    ""
+                )
+
+                sender_phone = msg.get(
+                    "from",
+                    ""
+                )
+
+                message_id = msg.get(
+                    "id",
+                    ""
+                )
+
+                print(
+                    f"[WhatsApp WEBHOOK] Message ID: "
+                    f"{message_id}",
+                    flush=True
+                )
+
+                print(
+                    f"[WhatsApp WEBHOOK] Type: "
+                    f"{message_type}",
+                    flush=True
+                )
+
+                print(
+                    f"[WhatsApp WEBHOOK] Sender: "
+                    f"{sender_phone}",
+                    flush=True
+                )
+
+                # Currently EasyBiz expects text messages.
+                if message_type != "text":
+
+                    print(
+                        f"[WhatsApp WEBHOOK] Ignoring "
+                        f"unsupported message type: "
+                        f"{message_type}",
+                        flush=True
+                    )
+
+                    continue
+
+                body = (
+                    msg.get(
+                        "text",
+                        {}
+                    )
+                    .get(
+                        "body",
+                        ""
+                    )
+                    .strip()
+                )
+
+                print(
+                    f"[WhatsApp WEBHOOK] Text: "
+                    f"'{body}'",
+                    flush=True
+                )
+
+                if not body:
+
+                    print(
+                        "[WhatsApp WEBHOOK] Empty text "
+                        "message. Ignoring.",
+                        flush=True
+                    )
+
+                    continue
+
+                # =============================================
+                # 1. FIND BUSINESS
+                # =============================================
+
+                business = get_business_by_whatsapp(
+                    db,
+                    display_phone_number
+                )
+
+                if not business:
+
+                    print(
+                        f"[WhatsApp ERROR] No business "
+                        f"matched Meta number "
+                        f"{display_phone_number}.",
+                        flush=True
+                    )
+
+                    continue
+
+                print(
+                    f"[WhatsApp SUCCESS] Business matched: "
+                    f"{business.business_name} "
+                    f"(ID={business.id})",
+                    flush=True
+                )
+
+                # =============================================
+                # 2. RAG PROCESSING
+                # =============================================
+
+                try:
+
+                    print(
+                        "[WhatsApp RAG] Sending message "
+                        "into EasyBiz RAG pipeline...",
+                        flush=True
+                    )
+
+                    result = process_rag_chat(
                         db=db,
                         business_id=business.id,
                         message=body,
                         channel="whatsapp",
                         customer_name=customer_name,
-                        customer_phone=sender_phone
+                        customer_phone=sender_phone,
                     )
-                    
-                    # 3. Send reply back to customer
-                    send_whatsapp_reply(sender_phone, res["answer"])
-                    
-    return {"status": "success"}
+
+                    print(
+                        "[WhatsApp RAG] RAG processing "
+                        "completed.",
+                        flush=True
+                    )
+
+                    print(
+                        f"[WhatsApp RAG] Result: {result}",
+                        flush=True
+                    )
+
+                except Exception as exc:
+
+                    print(
+                        f"[WhatsApp RAG ERROR] "
+                        f"process_rag_chat failed: "
+                        f"{type(exc).__name__}: {exc}",
+                        flush=True
+                    )
+
+                    # Do not crash webhook.
+                    continue
+
+                # =============================================
+                # 3. EXTRACT ANSWER
+                # =============================================
+
+                if isinstance(result, dict):
+
+                    answer = result.get(
+                        "answer",
+                        ""
+                    )
+
+                else:
+
+                    # In case process_rag_chat returns
+                    # a Pydantic model instead of dict.
+                    answer = getattr(
+                        result,
+                        "answer",
+                        ""
+                    )
+
+                if not answer:
+
+                    print(
+                        "[WhatsApp ERROR] RAG response "
+                        "contained no answer.",
+                        flush=True
+                    )
+
+                    continue
+
+                print(
+                    f"[WhatsApp RAG] Answer: "
+                    f"'{answer}'",
+                    flush=True
+                )
+
+                # =============================================
+                # 4. SEND WHATSAPP REPLY
+                # =============================================
+
+                sent = send_whatsapp_reply(
+                    sender_phone,
+                    answer
+                )
+
+                print(
+                    f"[WhatsApp WEBHOOK] Reply send "
+                    f"result: {sent}",
+                    flush=True
+                )
+
+    print(
+        "\n[WhatsApp WEBHOOK] Processing complete.",
+        flush=True
+    )
+
+    return {
+        "status": "success"
+    }
