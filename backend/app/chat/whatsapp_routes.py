@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from fastapi import (
     APIRouter,
@@ -9,6 +9,7 @@ from fastapi import (
     HTTPException,
     Query,
     Request,
+    Body,
     status,
 )
 from fastapi.responses import PlainTextResponse
@@ -557,34 +558,28 @@ def verify_webhook(
 @router.post("/")
 async def receive_webhook(
     request: Request,
+    payload: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db)
 ):
-
     # ========================================================
-    # THIS MUST BE THE FIRST LOG
+    # FIRST LOG: proves that Render/FastAPI received the POST
     # ========================================================
-
     print(
-        "\n\n"
-        "##################################################",
+        "\n\n##################################################",
         flush=True
     )
-
     print(
         "### WHATSAPP POST WEBHOOK HIT ###",
         flush=True
     )
-
     print(
         f"Request URL: {request.url}",
         flush=True
     )
-
     print(
         f"Request method: {request.method}",
         flush=True
     )
-
     print(
         "##################################################",
         flush=True
@@ -596,91 +591,34 @@ async def receive_webhook(
     ).lower()
 
     print(
-        f"[WhatsApp WEBHOOK] Current mode: "
-        f"{whatsapp_mode}",
+        f"[WhatsApp WEBHOOK] Current mode: {whatsapp_mode}",
         flush=True
     )
 
     if whatsapp_mode == "disabled":
-
         print(
             "[WhatsApp WEBHOOK] WhatsApp disabled.",
             flush=True
         )
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="WhatsApp is disabled",
         )
 
-    # ========================================================
-    # READ RAW REQUEST
-    # ========================================================
-
-    try:
-
-        raw_body = await request.body()
-
-        print(
-            "[WhatsApp WEBHOOK] Raw body:",
-            flush=True
-        )
-
-        print(
-            raw_body.decode(
-                "utf-8",
-                errors="replace"
-            ),
-            flush=True
-        )
-
-    except Exception as exc:
-
-        print(
-            f"[WhatsApp ERROR] Could not read raw body: "
-            f"{exc}",
-            flush=True
-        )
-
-        return {"status": "error"}
-
-    # ========================================================
-    # JSON PARSE
-    # ========================================================
-
-    try:
-
-        payload = json.loads(raw_body)
-
-    except Exception as exc:
-
-        print(
-            f"[WhatsApp ERROR] Invalid JSON: {exc}",
-            flush=True
-        )
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON payload",
-        )
-
+    # FastAPI has already parsed the JSON body into `payload`.
+    # Declaring Body(...) makes Swagger show a Request body box.
     print(
         "[WhatsApp WEBHOOK] Parsed payload:",
         flush=True
     )
-
     print(
-        json.dumps(
-            payload,
-            indent=2
-        ),
+        json.dumps(payload, indent=2),
         flush=True
     )
 
     # ========================================================
     # CHECK OBJECT TYPE
     # ========================================================
-
     object_type = payload.get("object")
 
     print(
@@ -689,13 +627,11 @@ async def receive_webhook(
     )
 
     if object_type != "whatsapp_business_account":
-
         print(
             "[WhatsApp WEBHOOK] Ignoring payload because "
             "object is not whatsapp_business_account.",
             flush=True
         )
-
         return {
             "status": "ignored",
             "reason": "not a whatsapp business account",
@@ -704,63 +640,43 @@ async def receive_webhook(
     entries = payload.get("entry", [])
 
     print(
-        f"[WhatsApp WEBHOOK] Entries found: "
-        f"{len(entries)}",
+        f"[WhatsApp WEBHOOK] Entries found: {len(entries)}",
         flush=True
     )
 
     # ========================================================
     # PROCESS ENTRIES
     # ========================================================
-
     for entry_index, entry in enumerate(entries):
-
         print(
-            f"[WhatsApp WEBHOOK] Processing entry "
-            f"{entry_index + 1}",
+            f"[WhatsApp WEBHOOK] Processing entry {entry_index + 1}",
             flush=True
         )
 
-        changes = entry.get(
-            "changes",
-            []
-        )
+        changes = entry.get("changes", [])
 
         print(
-            f"[WhatsApp WEBHOOK] Changes found: "
-            f"{len(changes)}",
+            f"[WhatsApp WEBHOOK] Changes found: {len(changes)}",
             flush=True
         )
 
         for change_index, change in enumerate(changes):
-
             print(
-                f"[WhatsApp WEBHOOK] Processing change "
-                f"{change_index + 1}",
+                f"[WhatsApp WEBHOOK] Processing change {change_index + 1}",
+                flush=True
+            )
+            print(
+                f"[WhatsApp WEBHOOK] Change field: {change.get('field')}",
                 flush=True
             )
 
-            print(
-                f"[WhatsApp WEBHOOK] Change field: "
-                f"{change.get('field')}",
-                flush=True
-            )
-
-            value = change.get(
-                "value",
-                {}
-            )
-
-            metadata = value.get(
-                "metadata",
-                {}
-            )
+            value = change.get("value", {})
+            metadata = value.get("metadata", {})
 
             display_phone_number = metadata.get(
                 "display_phone_number",
                 ""
             )
-
             meta_phone_number_id = metadata.get(
                 "phone_number_id",
                 ""
@@ -771,7 +687,6 @@ async def receive_webhook(
                 f"{display_phone_number}",
                 flush=True
             )
-
             print(
                 f"[WhatsApp WEBHOOK] Meta phone_number_id: "
                 f"{meta_phone_number_id}",
@@ -781,23 +696,14 @@ async def receive_webhook(
             # =================================================
             # CONTACT INFORMATION
             # =================================================
-
-            contacts = value.get(
-                "contacts",
-                []
-            )
-
+            contacts = value.get("contacts", [])
             customer_name = "WhatsApp Customer"
 
             if contacts:
-
                 customer_name = (
                     contacts[0]
                     .get("profile", {})
-                    .get(
-                        "name",
-                        "WhatsApp Customer"
-                    )
+                    .get("name", "WhatsApp Customer")
                 )
 
             print(
@@ -809,11 +715,7 @@ async def receive_webhook(
             # =================================================
             # MESSAGES
             # =================================================
-
-            messages = value.get(
-                "messages",
-                []
-            )
+            messages = value.get("messages", [])
 
             print(
                 f"[WhatsApp WEBHOOK] Messages found: "
@@ -821,28 +723,19 @@ async def receive_webhook(
                 flush=True
             )
 
-            # Status events also hit this webhook.
+            # Status events may also hit this webhook.
             if not messages:
-
-                statuses = value.get(
-                    "statuses",
-                    []
-                )
+                statuses = value.get("statuses", [])
 
                 if statuses:
-
                     print(
                         "[WhatsApp WEBHOOK] This is a "
                         "message-status event, not a new "
                         "customer message.",
                         flush=True
                     )
-
                     print(
-                        json.dumps(
-                            statuses,
-                            indent=2
-                        ),
+                        json.dumps(statuses, indent=2),
                         flush=True
                     )
 
@@ -851,106 +744,77 @@ async def receive_webhook(
             # =================================================
             # PROCESS CUSTOMER MESSAGES
             # =================================================
-
             for msg_index, msg in enumerate(messages):
-
                 print(
                     f"\n[WhatsApp WEBHOOK] Processing "
                     f"message {msg_index + 1}",
                     flush=True
                 )
 
-                message_type = msg.get(
-                    "type",
-                    ""
-                )
-
-                sender_phone = msg.get(
-                    "from",
-                    ""
-                )
-
-                message_id = msg.get(
-                    "id",
-                    ""
-                )
+                message_type = msg.get("type", "")
+                sender_phone = msg.get("from", "")
+                message_id = msg.get("id", "")
 
                 print(
                     f"[WhatsApp WEBHOOK] Message ID: "
                     f"{message_id}",
                     flush=True
                 )
-
                 print(
                     f"[WhatsApp WEBHOOK] Type: "
                     f"{message_type}",
                     flush=True
                 )
-
                 print(
                     f"[WhatsApp WEBHOOK] Sender: "
                     f"{sender_phone}",
                     flush=True
                 )
 
-                # Currently EasyBiz expects text messages.
+                # EasyBiz currently processes text messages.
                 if message_type != "text":
-
                     print(
                         f"[WhatsApp WEBHOOK] Ignoring "
                         f"unsupported message type: "
                         f"{message_type}",
                         flush=True
                     )
-
                     continue
 
                 body = (
-                    msg.get(
-                        "text",
-                        {}
-                    )
-                    .get(
-                        "body",
-                        ""
-                    )
+                    msg.get("text", {})
+                    .get("body", "")
                     .strip()
                 )
 
                 print(
-                    f"[WhatsApp WEBHOOK] Text: "
-                    f"'{body}'",
+                    f"[WhatsApp WEBHOOK] Text: '{body}'",
                     flush=True
                 )
 
                 if not body:
-
                     print(
                         "[WhatsApp WEBHOOK] Empty text "
                         "message. Ignoring.",
                         flush=True
                     )
-
                     continue
 
                 # =============================================
                 # 1. FIND BUSINESS
                 # =============================================
-
                 business = get_business_by_whatsapp(
                     db,
                     display_phone_number
                 )
 
                 if not business:
-
                     print(
                         f"[WhatsApp ERROR] No business "
                         f"matched Meta number "
                         f"{display_phone_number}.",
                         flush=True
                     )
-
                     continue
 
                 print(
@@ -963,9 +827,7 @@ async def receive_webhook(
                 # =============================================
                 # 2. RAG PROCESSING
                 # =============================================
-
                 try:
-
                     print(
                         "[WhatsApp RAG] Sending message "
                         "into EasyBiz RAG pipeline...",
@@ -982,69 +844,50 @@ async def receive_webhook(
                     )
 
                     print(
-                        "[WhatsApp RAG] RAG processing "
-                        "completed.",
+                        "[WhatsApp RAG] RAG processing completed.",
                         flush=True
                     )
-
                     print(
                         f"[WhatsApp RAG] Result: {result}",
                         flush=True
                     )
 
                 except Exception as exc:
-
                     print(
                         f"[WhatsApp RAG ERROR] "
                         f"process_rag_chat failed: "
                         f"{type(exc).__name__}: {exc}",
                         flush=True
                     )
-
-                    # Do not crash webhook.
+                    # Return 200 to Meta after logging the error so
+                    # repeated delivery does not create a retry loop.
                     continue
 
                 # =============================================
                 # 3. EXTRACT ANSWER
                 # =============================================
-
                 if isinstance(result, dict):
-
-                    answer = result.get(
-                        "answer",
-                        ""
-                    )
-
+                    answer = result.get("answer", "")
                 else:
-
-                    # In case process_rag_chat returns
-                    # a Pydantic model instead of dict.
-                    answer = getattr(
-                        result,
-                        "answer",
-                        ""
-                    )
+                    # Supports a Pydantic/object response as well.
+                    answer = getattr(result, "answer", "")
 
                 if not answer:
-
                     print(
                         "[WhatsApp ERROR] RAG response "
                         "contained no answer.",
                         flush=True
                     )
-
                     continue
 
                 print(
-                    f"[WhatsApp RAG] Answer: "
-                    f"'{answer}'",
+                    f"[WhatsApp RAG] Answer: '{answer}'",
                     flush=True
                 )
 
                 # =============================================
                 # 4. SEND WHATSAPP REPLY
                 # =============================================
-
                 sent = send_whatsapp_reply(
                     sender_phone,
                     answer
@@ -1061,6 +904,4 @@ async def receive_webhook(
         flush=True
     )
 
-    return {
-        "status": "success"
-    }
+    return {"status": "success"}
