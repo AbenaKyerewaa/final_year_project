@@ -525,6 +525,27 @@ def process_rag_chat(
     }
 
 
+
+@router.get("/{business_id}/public-info")
+def get_public_business_info(
+    business_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """Public business details used by the customer-facing web chat page."""
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business profile not found."
+        )
+
+    return {
+        "id": str(business.id),
+        "business_name": business.business_name,
+        "category": business.category or "",
+    }
+
+
 @router.post("/{business_id}", response_model=ChatResponse)
 def handle_chat_message(
     business_id: uuid.UUID,
@@ -879,4 +900,3 @@ def update_escalation_status(
         customer_phone=session.customer_phone if session else None,
         channel=session.channel if session else "web"
     )
-
