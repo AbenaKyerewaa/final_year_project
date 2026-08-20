@@ -1,13 +1,29 @@
 "use client";
 
 import React, { useState, useEffect, useRef, use } from 'react';
-import { getPublicBusiness, BusinessPublicResponse } from '@/services/business';
-import { sendChatMessage } from '@/services/chat';
 
 
 interface PageProps {
   params: Promise<{ businessId: string }>;
 }
+
+interface BusinessPublicResponse {
+  id: string;
+  business_name: string;
+  category?: string;
+  location?: string;
+  opening_hours?: string;
+}
+
+interface ChatApiResponse {
+  session_id: string;
+  answer: string;
+  confidence_score: number;
+  sources: Array<Record<string, unknown>>;
+  escalated: boolean;
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://final-year-project-pa2z.onrender.com';
 
 interface Message {
   sender: 'customer' | 'ai';
@@ -24,7 +40,7 @@ export default function CustomerChat({ params }: PageProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
-  
+
   const [loadingBusiness, setLoadingBusiness] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +64,9 @@ export default function CustomerChat({ params }: PageProps) {
   // Suggested questions
   const getSuggestedQuestions = () => {
     if (!business) return ["What are your opening hours?", "Where are you located?"];
-    
+
     const category = (business.category || "").toLowerCase();
-    
+
     if (category.includes("education") || category.includes("school") || category.includes("academy")) {
       return [
         "What are the admission requirements?",
@@ -73,7 +89,7 @@ export default function CustomerChat({ params }: PageProps) {
         "Do you have Dell laptops?"
       ];
     }
-    
+
     // Default fallback prompts
     return [
       "What are your opening hours?",
@@ -89,9 +105,17 @@ export default function CustomerChat({ params }: PageProps) {
       if (!businessId) return;
       try {
         setError(null);
-        const data = await getPublicBusiness(businessId);
+        const res = await fetch(`${API_URL}/chat/${businessId}/public-info`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store'
+        });
+        if (!res.ok) {
+          throw new Error('Could not retrieve the business profile.');
+        }
+        const data: BusinessPublicResponse = await res.json();
         setBusiness(data);
-        
+
         // Seed initial welcome message
         let welcomeText = `Welcome to ${data.business_name}. Ask me about our products, services, prices, opening hours, or location.`;
         const category = (data.category || "").toLowerCase();
@@ -100,7 +124,7 @@ export default function CustomerChat({ params }: PageProps) {
         } else if (category.includes("food") || category.includes("beverage") || category.includes("restaurant") || category.includes("cafe")) {
           welcomeText = `Welcome to ${data.business_name}. Ask me about our menu, food delivery, opening hours, or location.`;
         }
-        
+
         setMessages([
           {
             sender: 'ai',
@@ -128,7 +152,7 @@ export default function CustomerChat({ params }: PageProps) {
     if (!trimmed || sending) return;
 
     setError(null);
-    
+
     // Add user message
     const userMsg: Message = {
       sender: 'customer',
@@ -140,11 +164,26 @@ export default function CustomerChat({ params }: PageProps) {
     setSending(true);
 
     try {
-      const response = await sendChatMessage(businessId, {
-        message: trimmed,
-        channel: 'web',
-        session_id: sessionId
+      const res = await fetch(`${API_URL}/chat/${businessId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          message: trimmed,
+          customer_name: null,
+          customer_phone: null,
+          channel: 'web',
+          session_id: sessionId || null
+        })
       });
+
+      if (!res.ok) {
+        throw new Error('Unable to send message.');
+      }
+
+      const response: ChatApiResponse = await res.json();
 
       // Update session ID if received
       if (response.session_id) {
@@ -161,10 +200,9 @@ export default function CustomerChat({ params }: PageProps) {
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
       console.error("Error sending message:", err);
-      // Add error feedback directly in the message flow
       const errorMsg: Message = {
         sender: 'ai',
-        text: "I apologize, but I am unable to connect to the backend server. Please verify if the service is online.",
+        text: "Sorry, I couldn't send your message right now. Please try again.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -378,7 +416,7 @@ export default function CustomerChat({ params }: PageProps) {
           </div>
           <h2 className="text-xl font-bold text-white">Assistant Offline</h2>
           <p className="text-slate-300 text-sm">{error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-white font-semibold text-sm transition"
           >
@@ -391,7 +429,7 @@ export default function CustomerChat({ params }: PageProps) {
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans select-none overflow-hidden">
-      
+
       {/* Header */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         <div className="flex flex-col">
@@ -417,17 +455,15 @@ export default function CustomerChat({ params }: PageProps) {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex flex-col max-w-[85%] md:max-w-[70%] ${
-              msg.sender === 'customer' ? 'ml-auto items-end' : 'mr-auto items-start'
-            }`}
+            className={`flex flex-col max-w-[85%] md:max-w-[70%] ${msg.sender === 'customer' ? 'ml-auto items-end' : 'mr-auto items-start'
+              }`}
           >
             {/* Bubble */}
             <div
-              className={`rounded-2xl px-4 py-3 text-sm shadow-md leading-relaxed whitespace-pre-wrap ${
-                msg.sender === 'customer'
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
-              }`}
+              className={`rounded-2xl px-4 py-3 text-sm shadow-md leading-relaxed whitespace-pre-wrap ${msg.sender === 'customer'
+                ? 'bg-blue-600 text-white rounded-br-none'
+                : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                }`}
             >
               {msg.text}
             </div>
@@ -465,7 +501,7 @@ export default function CustomerChat({ params }: PageProps) {
 
       {/* Bottom Sticky Action Area */}
       <div className="border-t border-slate-900 bg-slate-950 p-4 shrink-0 flex flex-col gap-4">
-        
+
         {/* Suggested Questions List (Only shown if conversation just started or no pending response) */}
         {messages.length === 1 && !sending && (
           <div className="flex flex-col gap-2 max-w-4xl mx-auto w-full">
@@ -497,7 +533,7 @@ export default function CustomerChat({ params }: PageProps) {
               style={{ maxHeight: '120px' }}
             />
           </div>
-          
+
           <button
             onClick={() => handleSendMessage(inputText)}
             disabled={!inputText.trim() || sending}
@@ -510,7 +546,7 @@ export default function CustomerChat({ params }: PageProps) {
         </div>
 
       </div>
-      
+
     </div>
   );
 }
