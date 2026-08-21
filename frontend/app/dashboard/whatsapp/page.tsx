@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { updateBusiness } from "@/services/business";
 
 type WhatsAppConfig = {
   whatsappMode: string;
@@ -13,7 +14,7 @@ type WhatsAppConfig = {
 };
 
 export default function WhatsAppDashboard() {
-  const { activeBusiness, token } = useAuth();
+  const { activeBusiness, token, setActiveBusiness } = useAuth();
 
   const apiBaseUrl = (
     process.env.NEXT_PUBLIC_API_URL ||
@@ -32,6 +33,61 @@ export default function WhatsAppDashboard() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+
+  // States for updating WhatsApp number directly
+  const [whatsappNumberInput, setWhatsappNumberInput] = useState("");
+  const [savingNumber, setSavingNumber] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // States for copying Web Chat link
+  const [copiedWebChatField, setCopiedWebChatField] = useState(false);
+
+  const handleCopyWebChatLink = async () => {
+    if (!activeBusiness) return;
+    const chatUrl = `${window.location.origin}/b/${activeBusiness.id}/chat`;
+    try {
+      await navigator.clipboard.writeText(chatUrl);
+      setCopiedWebChatField(true);
+      setTimeout(() => setCopiedWebChatField(false), 2000);
+    } catch (err) {
+      console.error("Unable to copy web chat link:", err);
+    }
+  };
+
+  // Synchronize input with business data when loaded
+  useEffect(() => {
+    if (activeBusiness) {
+      setWhatsappNumberInput(activeBusiness.whatsapp_number || "");
+    }
+  }, [activeBusiness]);
+
+  const handleSaveNumber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeBusiness || !token) return;
+    setSavingNumber(true);
+    setSaveSuccess(null);
+    setSaveError(null);
+    try {
+      const updated = await updateBusiness(
+        activeBusiness.id,
+        { whatsapp_number: whatsappNumberInput.trim() },
+        token
+      );
+      setActiveBusiness(updated);
+      setSaveSuccess("WhatsApp Business number updated successfully!");
+      setConfig((prev) => ({
+        ...prev,
+        businessNumber: updated.whatsapp_number || "",
+      }));
+      setTimeout(() => setSaveSuccess(null), 3000);
+    } catch (err: any) {
+      console.error("Error saving WhatsApp number:", err);
+      setSaveError(err.message || "Failed to update WhatsApp Business number.");
+    } finally {
+      setSavingNumber(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchConfig() {
@@ -153,6 +209,65 @@ export default function WhatsAppDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* Link WhatsApp Number Form */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/40 backdrop-blur-xl p-6 shadow-sm dark:shadow-none transition-colors duration-300">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div className="flex-grow space-y-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                    Step 1: Enter Your WhatsApp Business Number
+                  </h2>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-relaxed">
+                    Enter the WhatsApp phone number you set up in your Meta Developer App (including the country code, e.g. <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-[10px] text-slate-707 dark:text-slate-300">+233249999999</code>). This links your incoming customer chats to your EasyBiz AI assistant.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveNumber} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                  <div className="flex-grow">
+                    <input
+                      type="text"
+                      placeholder="e.g. +233249999999"
+                      value={whatsappNumberInput}
+                      onChange={(e) => setWhatsappNumberInput(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800 dark:text-slate-100 font-medium transition duration-200"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={savingNumber || !whatsappNumberInput}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 dark:disabled:text-slate-500 hover:shadow-lg hover:shadow-emerald-500/10 active:translate-y-0.5 transition duration-200 shrink-0 flex items-center justify-center gap-1.5"
+                  >
+                    {savingNumber ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Number"
+                    )}
+                  </button>
+                </form>
+
+                {saveSuccess && (
+                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 px-3.5 py-2.5 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                    {saveSuccess}
+                  </div>
+                )}
+
+                {saveError && (
+                  <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 px-3.5 py-2.5 text-xs text-rose-700 dark:text-rose-300 font-medium">
+                    {saveError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Live connection status */}
           <div className="relative overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-gradient-to-br from-white via-slate-50 to-emerald-50/15 dark:from-slate-900 dark:via-slate-950 dark:to-emerald-950/20 p-6 shadow-sm dark:shadow-xl transition-colors duration-300">
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -z-10" />
@@ -316,6 +431,70 @@ export default function WhatsAppDashboard() {
               </Link>
             </div>
           </div>
+
+          {/* Web Chat Channel Link Card */}
+          {activeBusiness && (
+            <div className="rounded-2xl border border-indigo-100 dark:border-indigo-950/60 bg-gradient-to-r from-indigo-50/20 via-white to-blue-50/10 dark:from-indigo-950/10 dark:via-slate-950 dark:to-blue-950/5 p-6 shadow-sm dark:shadow-none transition-colors duration-300 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -z-10" />
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                      Alternative Channel: Web Chat Link
+                    </h2>
+                    <p className="text-slate-505 dark:text-slate-400 text-xs mt-1 leading-relaxed">
+                      Don't want to limit customer access to WhatsApp? Share this Web Chat link on your social media bios, emails, or flyers. Customers can click and chat with your AI assistant immediately in their browser, with no setup required.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center pt-2">
+                  <div className="flex-grow flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 pl-3.5 font-mono text-xs text-slate-605 dark:text-slate-300 select-all truncate max-w-md">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/b/${activeBusiness.id}/chat` : `/b/${activeBusiness.id}/chat`}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleCopyWebChatLink}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 border flex items-center gap-1.5 shadow-sm active:translate-y-0.5 ${
+                        copiedWebChatField
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/20"
+                          : "bg-indigo-600 hover:bg-indigo-500 border-indigo-600 text-white hover:shadow-indigo-500/20"
+                      }`}
+                    >
+                      {copiedWebChatField ? (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          Copy Link
+                        </>
+                      )}
+                    </button>
+                    <a
+                      href={`/b/${activeBusiness.id}/chat`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-707 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white transition duration-200 text-center shadow-sm"
+                    >
+                      Preview Chat
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}

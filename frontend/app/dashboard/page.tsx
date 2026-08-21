@@ -16,6 +16,19 @@ export default function DashboardHome() {
   const [reindexing, setReindexing] = useState(false);
   const [reindexSuccess, setReindexSuccess] = useState<string | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyLink = async () => {
+    if (!activeBusiness) return;
+    const chatUrl = `${window.location.origin}/b/${activeBusiness.id}/chat`;
+    try {
+      await navigator.clipboard.writeText(chatUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+    }
+  };
 
   const handleRebuildIndex = async () => {
     if (!activeBusiness || !token || reindexing) return;
@@ -214,6 +227,66 @@ export default function DashboardHome() {
               </div>
             </div>
 
+          </div>
+
+          {/* Share Web Chat Link Card */}
+          <div className="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-950/60 bg-gradient-to-r from-indigo-50/20 via-white to-blue-50/10 dark:from-indigo-950/10 dark:via-slate-950 dark:to-blue-950/5 shadow-sm dark:shadow-none transition-colors duration-300 relative overflow-hidden">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -z-10" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 shrink-0 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-800 dark:text-slate-200">Public Web Chat Link</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl leading-relaxed">
+                    Make your business accessible to everyone! Copy this link and paste it into your bio on WhatsApp Business, Instagram, TikTok, or other social profiles so customers can chat with your AI assistant in their web browser.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto md:max-w-md lg:max-w-lg shrink-0">
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2 pl-3 flex-grow font-mono text-xs text-slate-600 dark:text-slate-300 select-all truncate max-w-xs md:max-w-sm">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/b/${activeBusiness.id}/chat` : `/b/${activeBusiness.id}/chat`}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyLink}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 border flex items-center gap-1.5 shadow-sm active:translate-y-0.5 ${
+                      copiedLink
+                        ? "bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/20"
+                        : "bg-indigo-600 hover:bg-indigo-500 border-indigo-600 text-white hover:shadow-indigo-500/20"
+                    }`}
+                  >
+                    {copiedLink ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Copy Link
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href={`/b/${activeBusiness.id}/chat`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-707 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white transition duration-200 text-center shadow-sm"
+                  >
+                    Preview Chat
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
           
           {/* Quick Actions / Integration Cards */}
