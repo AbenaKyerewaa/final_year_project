@@ -107,12 +107,17 @@ def _service_duration(service) -> str:
 
 
 def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -> Optional[dict]:
-    """Structured, business-scoped retrieval for Products, Services and FAQs.
+    """Deterministic, business-scoped retrieval for FAQs, Products and Services.
 
-    This is intentionally conservative: it returns an answer only when the query can be
-    matched to a clear catalogue intent, a product/service entity, or a sufficiently strong
-    FAQ match. Ambiguous queries return None and are left to document RAG instead of being
-    force-matched to an unrelated record.
+    Retrieval priority:
+    1) Exact / near-exact FAQ matches
+    2) Broad product/service catalogue intents
+    3) Specific product/service entity matches
+    4) Stronger fuzzy FAQ matches
+    5) None -> semantic/document RAG
+
+    The function is intentionally conservative so a generic word such as
+    "service" or "repair" cannot force one arbitrary service record.
     """
     query_text = (query or "").strip()
     query_lower = query_text.lower()
@@ -126,65 +131,190 @@ def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -
     services = db.query(Service).filter(Service.business_id == business_id).all()
     faqs = db.query(FAQ).filter(FAQ.business_id == business_id).all()
 
-    # ---------- 1. Specific product/entity matching ----------
+    product_generic_terms = {
+        "sell", "product", "item", "gadget", "stock", "catalog", "catalogue",
+        "buy", "available", "availability"
+    }
+    service_generic_terms = {
+        "service", "repair", "support", "fix", "installation", "install",
+        "upgrade", "maintenance", "servicing", "offer", "provide"
+    }
+
+    # ------------------------------------------------------------------
+    # 1. EXACT / NEAR-EXACT FAQ MATCHING FIRST
+    # ------------------------------------------------------------------
+    # If the owner has already supplied an approved FAQ for essentially
+    # the same question, prefer that answer over a product/service guess.
+    faq_exact_matches = []
+    for faq in faqs:
+        question_text = (getattr(faq, "question", "") or "").strip()
+        question_lower = question_text.lower()
+        question_tokens = set(_normalise_tokens(question_text))
+
+        if not question_tokens:
+            continue
+
+        overlap = query_set & question_tokens
+        union = query_set | question_tokens
+        jaccard = len(overlap) / max(1, len(union))
+        query_coverage = len(overlap) / max(1, len(query_set))
+        faq_coverage = len(overlap) / max(1, len(question_tokens))
+
+        exact_text = query_lower == question_lower
+        containment = (
+            len(query_lower) >= 6
+            and (query_lower in question_lower or question_lower in query_lower)
+        )
+
+        near_exact = (
+            exact_text
+            or containment
+            or (
+                len(overlap) >= 2
+                and query_coverage >= 0.80
+                and faq_coverage >= 0.65
+            )
+        )
+
+        if near_exact:
+            score = (
+                (2.0 if exact_text else 0.0)
+                + (1.0 if containment else 0.0)
+                + jaccard
+                + query_coverage
+                + faq_coverage
+            )
+            faq_exact_matches.append((score, faq, query_coverage))
+
+    if faq_exact_matches:
+        faq_exact_matches.sort(key=lambda item: item[0], reverse=True)
+        _, best_faq, coverage = faq_exact_matches[0]
+        return {
+            "answer": best_faq.answer,
+            "title": best_faq.question,
+            "source_type": "faq",
+            "confidence_score": min(0.98, max(0.90, 0.90 + (coverage * 0.08))),
+        }
+
+    # ------------------------------------------------------------------
+    # 2. BROAD CATALOGUE / LIST INTENTS
+    # ------------------------------------------------------------------
+    # Detect broad intent before attempting one specific entity match.
+    # This prevents "what services do you offer?" from matching one
+    # service merely because its name contains "service".
+    has_product_catalogue_intent = bool(query_set & product_generic_terms)
+    has_service_catalogue_intent = bool(query_set & service_generic_terms)
+
+    # Generic list-like wording strengthens broad intent.
+    broad_list_words = {"what", "which", "list", "show", "some", "range", "types", "kind", "kinds"}
+    raw_words = set(re.findall(r"[a-zA-Z0-9]+", query_lower))
+    sounds_like_list = bool(raw_words & broad_list_words) or len(query_set) <= 2
+
+    # Meaningful tokens are words that could identify a concrete item.
+    product_entity_query_tokens = query_set - product_generic_terms
+    service_entity_query_tokens = query_set - service_generic_terms
+
+    # If there is no meaningful entity token, treat it as a broad request.
+    if has_product_catalogue_intent and not has_service_catalogue_intent and products:
+        if sounds_like_list or not product_entity_query_tokens:
+            lines = []
+            for p in products[:15]:
+                qty = f" — {p.quantity} in stock" if getattr(p, "quantity", None) is not None else ""
+                lines.append(
+                    f"- {p.name}: {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}{qty}"
+                )
+            extra = ""
+            if len(products) > 15:
+                extra = (
+                    f"\n\nThere are {len(products)} products in the catalogue. "
+                    "Ask about a product or category for more details."
+                )
+            return {
+                "answer": "We sell a range of products, including:\n" + "\n".join(lines) + extra,
+                "title": "Product catalogue",
+                "source_type": "product",
+                "confidence_score": 0.96,
+            }
+
+    if has_service_catalogue_intent and not has_product_catalogue_intent and services:
+        if sounds_like_list or not service_entity_query_tokens:
+            lines = []
+            for s in services[:18]:
+                duration_text = _service_duration(s)
+                duration_suffix = f" — {duration_text}" if duration_text else ""
+                lines.append(
+                    f"- {s.name}: {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}"
+                    f"{duration_suffix}"
+                )
+            return {
+                "answer": "We offer the following services:\n" + "\n".join(lines),
+                "title": "Services catalogue",
+                "source_type": "service",
+                "confidence_score": 0.96,
+            }
+
+    # ------------------------------------------------------------------
+    # 3. SPECIFIC PRODUCT MATCHING
+    # ------------------------------------------------------------------
     product_matches = []
     for product in products:
         name_tokens = set(_normalise_tokens(getattr(product, "name", "")))
         category_tokens = set(_normalise_tokens(getattr(product, "category", "")))
         description_tokens = set(_normalise_tokens(getattr(product, "description", "")))
 
-        name_hits = query_set & name_tokens
-        category_hits = query_set & category_tokens
-        description_hits = query_set & description_tokens
+        # Generic catalogue words never count as entity evidence.
+        name_hits = (query_set & name_tokens) - product_generic_terms
+        category_hits = (query_set & category_tokens) - product_generic_terms
+        description_hits = (query_set & description_tokens) - product_generic_terms
 
-        score = (len(name_hits) * 6) + (len(category_hits) * 3) + min(len(description_hits), 2)
-        if score > 0:
+        score = (
+            len(name_hits) * 8
+            + len(category_hits) * 4
+            + min(len(description_hits), 2)
+        )
+
+        # Require meaningful identifying evidence.
+        if score >= 6 and (name_hits or category_hits):
             product_matches.append((score, product, name_hits, category_hits))
 
     product_matches.sort(key=lambda item: item[0], reverse=True)
     best_product_score = product_matches[0][0] if product_matches else 0
 
-    # ---------- 2. Specific service/entity matching ----------
+    # ------------------------------------------------------------------
+    # 4. SPECIFIC SERVICE MATCHING
+    # ------------------------------------------------------------------
     service_matches = []
     for service in services:
         name_tokens = set(_normalise_tokens(getattr(service, "name", "")))
         description_tokens = set(_normalise_tokens(getattr(service, "description", "")))
 
-        name_hits = query_set & name_tokens
-        description_hits = query_set & description_tokens
-        score = (len(name_hits) * 6) + min(len(description_hits), 3)
-        if score > 0:
+        # Crucial: generic words such as "service" and "repair" do not
+        # identify one specific service.
+        name_hits = (query_set & name_tokens) - service_generic_terms
+        description_hits = (query_set & description_tokens) - service_generic_terms
+
+        score = len(name_hits) * 8 + min(len(description_hits), 3)
+
+        if score >= 6 and name_hits:
             service_matches.append((score, service, name_hits))
 
     service_matches.sort(key=lambda item: item[0], reverse=True)
     best_service_score = service_matches[0][0] if service_matches else 0
 
-    # Generic words should not turn a catalogue question into one arbitrary item.
-    product_catalogue_terms = {"sell", "product", "item", "gadget", "stock", "catalog", "catalogue", "buy"}
-    service_catalogue_terms = {"service", "repair", "support", "fix", "installation", "upgrade"}
-
-    has_product_catalogue_intent = bool(query_set & product_catalogue_terms)
-    has_service_catalogue_intent = bool(query_set & service_catalogue_terms)
-
-    # A product is considered specific when the customer mentioned meaningful product/name/category tokens.
-    specific_product_matches = [
-        item for item in product_matches
-        if item[2] or item[3]
-    ]
-    specific_service_matches = [
-        item for item in service_matches
-        if item[2]
-    ]
-
-    # ---------- 3. Clear product request ----------
-    if specific_product_matches and best_product_score >= max(6, best_service_score + 2):
-        top_score = specific_product_matches[0][0]
-        selected = [item[1] for item in specific_product_matches if item[0] >= max(6, top_score - 3)]
-        selected = selected[:12]
+    # Return the stronger entity type when one clearly wins.
+    if product_matches and best_product_score >= best_service_score + 2:
+        top_score = product_matches[0][0]
+        selected = [
+            item[1]
+            for item in product_matches
+            if item[0] >= max(6, top_score - 3)
+        ][:12]
 
         if len(selected) == 1:
             p = selected[0]
-            parts = [f"{p.name} is {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}."]
+            parts = [
+                f"{p.name} is {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}."
+            ]
             if getattr(p, "description", None):
                 parts.append(str(p.description).strip())
             if getattr(p, "quantity", None) is not None:
@@ -202,7 +332,9 @@ def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -
         lines = []
         for p in selected:
             qty = f" — {p.quantity} in stock" if getattr(p, "quantity", None) is not None else ""
-            lines.append(f"- {p.name}: {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}{qty}")
+            lines.append(
+                f"- {p.name}: {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}{qty}"
+            )
         return {
             "answer": "Here are the matching products I found:\n" + "\n".join(lines),
             "title": f"Matching products ({len(selected)})",
@@ -210,15 +342,20 @@ def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -
             "confidence_score": 0.93,
         }
 
-    # ---------- 4. Clear service request ----------
-    if specific_service_matches and best_service_score >= max(6, best_product_score + 2):
-        top_score = specific_service_matches[0][0]
-        selected = [item[1] for item in specific_service_matches if item[0] >= max(6, top_score - 3)]
-        selected = selected[:12]
+    if service_matches and best_service_score >= best_product_score + 2:
+        top_score = service_matches[0][0]
+        selected = [
+            item[1]
+            for item in service_matches
+            if item[0] >= max(6, top_score - 3)
+        ][:12]
 
         if len(selected) == 1:
             s = selected[0]
-            parts = [f"Our {s.name} service costs {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}."]
+            parts = [
+                f"Our {s.name} service costs "
+                f"{_money(getattr(s, 'currency', None), getattr(s, 'price', None))}."
+            ]
             if getattr(s, "description", None):
                 parts.append(str(s.description).strip())
             duration_text = _service_duration(s)
@@ -235,7 +372,10 @@ def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -
         for s in selected:
             duration_text = _service_duration(s)
             duration_suffix = f" — {duration_text}" if duration_text else ""
-            lines.append(f"- {s.name}: {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}{duration_suffix}")
+            lines.append(
+                f"- {s.name}: {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}"
+                f"{duration_suffix}"
+            )
         return {
             "answer": "Here are the matching services I found:\n" + "\n".join(lines),
             "title": f"Matching services ({len(selected)})",
@@ -243,38 +383,41 @@ def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -
             "confidence_score": 0.93,
         }
 
-    # ---------- 5. Broad catalogue/list requests ----------
-    # Only use these when no specific entity clearly won above.
-    if has_product_catalogue_intent and not has_service_catalogue_intent and products:
-        lines = []
-        for p in products[:15]:
-            qty = f" — {p.quantity} in stock" if getattr(p, "quantity", None) is not None else ""
-            lines.append(f"- {p.name}: {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}{qty}")
-        extra = ""
-        if len(products) > 15:
-            extra = f"\n\nThere are {len(products)} products in the catalogue. Ask about a product or category for more details."
+    # If both types tie but one has a clear entity match, prefer the one
+    # with more direct name/category overlap.
+    if product_matches and not service_matches:
+        p = product_matches[0][1]
         return {
-            "answer": "We sell a range of products, including:\n" + "\n".join(lines) + extra,
-            "title": "Product catalogue",
+            "answer": (
+                f"{p.name} is "
+                f"{_money(getattr(p, 'currency', None), getattr(p, 'price', None))}. "
+                f"{(getattr(p, 'description', None) or '').strip()}"
+            ).strip(),
+            "title": p.name,
             "source_type": "product",
-            "confidence_score": 0.96,
+            "confidence_score": 0.91,
         }
 
-    if has_service_catalogue_intent and not has_product_catalogue_intent and services:
-        lines = []
-        for s in services[:18]:
-            duration_text = _service_duration(s)
-            duration_suffix = f" — {duration_text}" if duration_text else ""
-            lines.append(f"- {s.name}: {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}{duration_suffix}")
+    if service_matches and not product_matches:
+        s = service_matches[0][1]
+        duration_text = _service_duration(s)
+        duration_suffix = f" Estimated duration: {duration_text}." if duration_text else ""
         return {
-            "answer": "We offer the following services:\n" + "\n".join(lines),
-            "title": "Services catalogue",
+            "answer": (
+                f"Our {s.name} service costs "
+                f"{_money(getattr(s, 'currency', None), getattr(s, 'price', None))}. "
+                f"{(getattr(s, 'description', None) or '').strip()}"
+                f"{duration_suffix}"
+            ).strip(),
+            "title": s.name,
             "source_type": "service",
-            "confidence_score": 0.96,
+            "confidence_score": 0.91,
         }
 
-    # ---------- 6. FAQ matching ----------
-    # FAQ matching requires more evidence than one shared generic word.
+    # ------------------------------------------------------------------
+    # 5. STRONG FUZZY FAQ MATCHING
+    # ------------------------------------------------------------------
+    # This is deliberately stricter than the exact/near-exact FAQ pass.
     faq_matches = []
     for faq in faqs:
         question_text = getattr(faq, "question", "") or ""
@@ -283,27 +426,27 @@ def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -
             continue
 
         overlap = query_set & question_tokens
-        coverage = len(overlap) / max(1, min(len(query_set), len(question_tokens)))
-        phrase_bonus = 1.0 if query_lower in question_text.lower() or question_text.lower() in query_lower else 0.0
-        score = coverage + phrase_bonus
+        query_coverage = len(overlap) / max(1, len(query_set))
+        faq_coverage = len(overlap) / max(1, len(question_tokens))
+        score = (query_coverage * 0.65) + (faq_coverage * 0.35)
 
-        # Require either two meaningful shared tokens, a strong short-query overlap, or phrase containment.
         strong_enough = (
             len(overlap) >= 2
-            or (len(query_set) <= 2 and coverage >= 0.75)
-            or phrase_bonus > 0
+            and query_coverage >= 0.70
+            and faq_coverage >= 0.50
         )
+
         if strong_enough:
-            faq_matches.append((score, faq, overlap, coverage))
+            faq_matches.append((score, faq, query_coverage))
 
     if faq_matches:
         faq_matches.sort(key=lambda item: item[0], reverse=True)
-        best_score, best_faq, overlap, coverage = faq_matches[0]
+        _, best_faq, coverage = faq_matches[0]
         return {
             "answer": best_faq.answer,
             "title": best_faq.question,
             "source_type": "faq",
-            "confidence_score": min(0.94, max(0.82, 0.82 + (coverage * 0.12))),
+            "confidence_score": min(0.92, max(0.84, 0.84 + (coverage * 0.08))),
         }
 
     # No forced guess. Let semantic/document RAG handle the question.
