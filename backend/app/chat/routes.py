@@ -411,8 +411,46 @@ def process_rag_chat(
     # 4. RAG Retrieval from Vector DB
     store = FAISSVectorStore()
     ai_service = AIService()
-    
-    search_query = message.strip()
+
+    # IMPORTANT: Always try deterministic structured retrieval against the
+    # customer's ORIGINAL message before any LLM-based query rewriting.
+    # This prevents a mock/fallback provider or conversation rewrite from
+    # changing clear requests such as "What do you sell?" or
+    # "Do you have Samsung phones?" into text that no longer matches the
+    # business's Products, Services, or FAQs.
+    original_query = message.strip()
+    structured_match = find_local_database_match(db, business_id, original_query)
+    if structured_match:
+        structured_confidence = float(structured_match.get("confidence_score", 0.90))
+        sources_data = [{
+            "title": structured_match["title"],
+            "source_type": structured_match["source_type"],
+            "score": structured_confidence,
+        }]
+        print(
+            f"[Structured Retrieval] Original query matched {structured_match['source_type']}: "
+            f"{structured_match['title']} (confidence={structured_confidence:.2f})"
+        )
+
+        ai_msg_record = ChatMessage(
+            session_id=session.id,
+            sender="ai",
+            message=structured_match["answer"],
+            confidence_score=structured_confidence,
+            ai_response_source=json.dumps(sources_data),
+        )
+        db.add(ai_msg_record)
+        db.commit()
+
+        return {
+            "session_id": session.id,
+            "answer": structured_match["answer"],
+            "confidence_score": structured_confidence,
+            "sources": sources_data,
+            "escalated": False,
+        }
+
+    search_query = original_query
     try:
         history_messages = db.query(ChatMessage).filter(
             ChatMessage.session_id == session.id
@@ -448,39 +486,40 @@ def process_rag_chat(
     except Exception as e:
         print(f"[RAG Query Condense] Failed to rewrite query: {e}")
 
-    # 4A. Structured database retrieval before vector search.
-    # This handles catalogue, product, service and FAQ questions deterministically and
-    # avoids forcing broad questions onto one unrelated keyword match.
-    structured_match = find_local_database_match(db, business_id, search_query)
-    if structured_match:
-        structured_confidence = float(structured_match.get("confidence_score", 0.90))
-        sources_data = [{
-            "title": structured_match["title"],
-            "source_type": structured_match["source_type"],
-            "score": structured_confidence,
-        }]
-        print(
-            f"[Structured Retrieval] Matched {structured_match['source_type']}: "
-            f"{structured_match['title']} (confidence={structured_confidence:.2f})"
-        )
+    # If the original message did not match structured data, try the rewritten
+    # standalone query once. This is useful for genuine follow-ups such as
+    # "How much is it?" while keeping clear standalone questions untouched.
+    if search_query != original_query:
+        structured_match = find_local_database_match(db, business_id, search_query)
+        if structured_match:
+            structured_confidence = float(structured_match.get("confidence_score", 0.90))
+            sources_data = [{
+                "title": structured_match["title"],
+                "source_type": structured_match["source_type"],
+                "score": structured_confidence,
+            }]
+            print(
+                f"[Structured Retrieval] Rewritten query matched {structured_match['source_type']}: "
+                f"{structured_match['title']} (confidence={structured_confidence:.2f})"
+            )
 
-        ai_msg_record = ChatMessage(
-            session_id=session.id,
-            sender="ai",
-            message=structured_match["answer"],
-            confidence_score=structured_confidence,
-            ai_response_source=json.dumps(sources_data),
-        )
-        db.add(ai_msg_record)
-        db.commit()
+            ai_msg_record = ChatMessage(
+                session_id=session.id,
+                sender="ai",
+                message=structured_match["answer"],
+                confidence_score=structured_confidence,
+                ai_response_source=json.dumps(sources_data),
+            )
+            db.add(ai_msg_record)
+            db.commit()
 
-        return {
-            "session_id": session.id,
-            "answer": structured_match["answer"],
-            "confidence_score": structured_confidence,
-            "sources": sources_data,
-            "escalated": False,
-        }
+            return {
+                "session_id": session.id,
+                "answer": structured_match["answer"],
+                "confidence_score": structured_confidence,
+                "sources": sources_data,
+                "escalated": False,
+            }
 
     try:
         query_embedding = ai_service.embed_text(search_query)
