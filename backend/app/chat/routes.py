@@ -62,146 +62,251 @@ def is_handoff_requested(message: str) -> bool:
     return any(keyword in msg for keyword in HANDOFF_KEYWORDS)
 
 
-def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -> Optional[dict]:
-    """Helper to perform direct database keyword search matching for FAQs, Services, and Products.
-    Used as an immediate graceful fallback when Gemini LLM or embedding limits are reached.
-    Supports returning multiple matching products/services combined.
-    """
-    raw_words = re.findall(r'[a-zA-Z0-9]{2,}', query.lower())
+def _normalise_tokens(text: str) -> List[str]:
+    """Return conservative searchable tokens for structured chat matching."""
+    raw = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
     stopwords = {
-        # 1-character
-        "a", "i",
-        # 2-character common words to filter
-        "an", "am", "are", "as", "at", "be", "by", "do", "go", "he", "if", "in", "is", "it", 
-        "me", "my", "no", "of", "on", "or", "so", "to", "up", "we", "us", "oh", "to",
-        # 3-character & above
-        "the", "and", "for", "you", "that", "this", "with", "have", "are", "was",
-        "were", "but", "not", "she", "her", "his", "they", "them", "their", "our",
-        "what", "where", "when", "how", "who", "which", "about", "your", "will", "can",
-        "does", "did", "do"
+        "a", "an", "and", "are", "as", "at", "be", "by", "can", "could", "did", "do", "does",
+        "for", "from", "have", "how", "i", "in", "is", "it", "me", "my", "of", "on", "or",
+        "our", "please", "some", "that", "the", "their", "them", "these", "they", "this", "to",
+        "us", "we", "what", "when", "where", "which", "who", "will", "with", "you", "your"
     }
-    clean_words = [w for w in raw_words if w not in stopwords]
-    if not clean_words:
+
+    tokens: List[str] = []
+    for token in raw:
+        if token in stopwords:
+            continue
+        # Small amount of normalisation so "laptops" matches "laptop", etc.
+        if len(token) > 4 and token.endswith("ies"):
+            token = token[:-3] + "y"
+        elif len(token) > 4 and token.endswith("s") and not token.endswith("ss"):
+            token = token[:-1]
+        tokens.append(token)
+    return tokens
+
+
+def _money(currency, price) -> str:
+    currency = currency or "GHS"
+    try:
+        return f"{currency} {float(price):,.2f}"
+    except (TypeError, ValueError):
+        return f"{currency} {price}" if price is not None else currency
+
+
+def _service_duration(service) -> str:
+    duration = getattr(service, "duration", None)
+    duration_unit = getattr(service, "duration_unit", None)
+    if duration in (None, ""):
+        return ""
+    duration_text = str(duration).strip()
+    if duration_unit:
+        unit_text = str(duration_unit).strip()
+        if unit_text and unit_text.lower() not in duration_text.lower():
+            duration_text = f"{duration_text} {unit_text}"
+    return duration_text
+
+
+def find_local_database_match(db: Session, business_id: uuid.UUID, query: str) -> Optional[dict]:
+    """Structured, business-scoped retrieval for Products, Services and FAQs.
+
+    This is intentionally conservative: it returns an answer only when the query can be
+    matched to a clear catalogue intent, a product/service entity, or a sufficiently strong
+    FAQ match. Ambiguous queries return None and are left to document RAG instead of being
+    force-matched to an unrelated record.
+    """
+    query_text = (query or "").strip()
+    query_lower = query_text.lower()
+    query_tokens = _normalise_tokens(query_text)
+    query_set = set(query_tokens)
+
+    if not query_text:
         return None
 
-    def score_field(text: str, exact_weight: int, substring_weight: int) -> int:
-        if not text:
-            return 0
-        text_words = re.findall(r'[a-zA-Z0-9]{2,}', text.lower())
-        score = 0
-        for w in clean_words:
-            matched = False
-            # Check for exact word match first
-            for tw in text_words:
-                if w == tw:
-                    score += exact_weight
-                    matched = True
-                    break
-            # If no exact match and length is > 2, check for substring matching
-            if not matched and len(w) > 2:
-                for tw in text_words:
-                    if len(tw) > 2 and (w in tw or tw in w):
-                        score += substring_weight
-                        break
-        return score
-
-    # 1. Score Services
-    matched_services = []
-    services = db.query(Service).filter(Service.business_id == business_id).all()
-    for s in services:
-        score = score_field(s.name, 15, 8) + score_field(s.description, 3, 1)
-        if score > 0:
-            matched_services.append((score, s))
-
-    # 2. Score Products
-    matched_products = []
     products = db.query(Product).filter(Product.business_id == business_id).all()
-    for p in products:
-        score = score_field(p.name, 15, 8) + score_field(p.category, 15, 8) + score_field(p.description, 3, 1)
-        if score > 0:
-            matched_products.append((score, p))
-
-    # 3. Score FAQs
-    matched_faqs = []
+    services = db.query(Service).filter(Service.business_id == business_id).all()
     faqs = db.query(FAQ).filter(FAQ.business_id == business_id).all()
-    for faq in faqs:
-        score = score_field(faq.question, 15, 8) + score_field(faq.answer, 3, 1)
+
+    # ---------- 1. Specific product/entity matching ----------
+    product_matches = []
+    for product in products:
+        name_tokens = set(_normalise_tokens(getattr(product, "name", "")))
+        category_tokens = set(_normalise_tokens(getattr(product, "category", "")))
+        description_tokens = set(_normalise_tokens(getattr(product, "description", "")))
+
+        name_hits = query_set & name_tokens
+        category_hits = query_set & category_tokens
+        description_hits = query_set & description_tokens
+
+        score = (len(name_hits) * 6) + (len(category_hits) * 3) + min(len(description_hits), 2)
         if score > 0:
-            matched_faqs.append((score, faq))
+            product_matches.append((score, product, name_hits, category_hits))
 
-    # Find highest score among all categories
-    best_product_score = max([item[0] for item in matched_products]) if matched_products else 0
-    best_service_score = max([item[0] for item in matched_services]) if matched_services else 0
-    best_faq_score = max([item[0] for item in matched_faqs]) if matched_faqs else 0
+    product_matches.sort(key=lambda item: item[0], reverse=True)
+    best_product_score = product_matches[0][0] if product_matches else 0
 
-    highest_score = max(best_product_score, best_service_score, best_faq_score)
-    if highest_score <= 0:
-        return None
+    # ---------- 2. Specific service/entity matching ----------
+    service_matches = []
+    for service in services:
+        name_tokens = set(_normalise_tokens(getattr(service, "name", "")))
+        description_tokens = set(_normalise_tokens(getattr(service, "description", "")))
 
-    # Prioritize products if they have a strong match (tied or close to highest score)
-    if best_product_score > 0 and (best_product_score >= highest_score or (best_faq_score < best_product_score + 5)):
-        threshold_score = max(8, int(best_product_score * 0.8))
-        top_products_sorted = sorted([item for item in matched_products if item[0] >= threshold_score], key=lambda x: x[0], reverse=True)
-        top_products = [item[1] for item in top_products_sorted]
+        name_hits = query_set & name_tokens
+        description_hits = query_set & description_tokens
+        score = (len(name_hits) * 6) + min(len(description_hits), 3)
+        if score > 0:
+            service_matches.append((score, service, name_hits))
 
-        if len(top_products) == 1:
-            p = top_products[0]
-            desc_str = f" {p.description}." if p.description else ""
-            qty_str = f" In stock: {p.quantity} items." if p.quantity is not None else ""
+    service_matches.sort(key=lambda item: item[0], reverse=True)
+    best_service_score = service_matches[0][0] if service_matches else 0
+
+    # Generic words should not turn a catalogue question into one arbitrary item.
+    product_catalogue_terms = {"sell", "product", "item", "gadget", "stock", "catalog", "catalogue", "buy"}
+    service_catalogue_terms = {"service", "repair", "support", "fix", "installation", "upgrade"}
+
+    has_product_catalogue_intent = bool(query_set & product_catalogue_terms)
+    has_service_catalogue_intent = bool(query_set & service_catalogue_terms)
+
+    # A product is considered specific when the customer mentioned meaningful product/name/category tokens.
+    specific_product_matches = [
+        item for item in product_matches
+        if item[2] or item[3]
+    ]
+    specific_service_matches = [
+        item for item in service_matches
+        if item[2]
+    ]
+
+    # ---------- 3. Clear product request ----------
+    if specific_product_matches and best_product_score >= max(6, best_service_score + 2):
+        top_score = specific_product_matches[0][0]
+        selected = [item[1] for item in specific_product_matches if item[0] >= max(6, top_score - 3)]
+        selected = selected[:12]
+
+        if len(selected) == 1:
+            p = selected[0]
+            parts = [f"{p.name} is {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}."]
+            if getattr(p, "description", None):
+                parts.append(str(p.description).strip())
+            if getattr(p, "quantity", None) is not None:
+                parts.append(f"Current stock: {p.quantity}.")
+            warranty = getattr(p, "warranty", None)
+            if warranty:
+                parts.append(f"Warranty: {warranty}.")
             return {
-                "answer": f"We have '{p.name}' available for {p.currency} {p.price:.2f}.{desc_str}{qty_str}",
+                "answer": " ".join(parts),
                 "title": p.name,
-                "source_type": "product"
-            }
-        else:
-            product_lines = []
-            for p in top_products:
-                qty_str = f" (In stock: {p.quantity})" if p.quantity is not None else ""
-                product_lines.append(f"- {p.name}: {p.currency} {p.price:.2f}{qty_str}")
-            products_list_str = "\n".join(product_lines)
-            return {
-                "answer": f"We sell both brand new in box and Grade A clean refurbished laptops. Refurbished laptops undergo rigorous quality checks.\nWe have the following products in stock matching your query:\n{products_list_str}",
-                "title": f"Products list ({len(top_products)} items)",
-                "source_type": "product"
+                "source_type": "product",
+                "confidence_score": 0.95,
             }
 
-    # If services are the winner
-    if best_service_score > 0 and best_service_score >= highest_score:
-        threshold_score = max(8, int(best_service_score * 0.8))
-        top_services_sorted = sorted([item for item in matched_services if item[0] >= threshold_score], key=lambda x: x[0], reverse=True)
-        top_services = [item[1] for item in top_services_sorted]
+        lines = []
+        for p in selected:
+            qty = f" — {p.quantity} in stock" if getattr(p, "quantity", None) is not None else ""
+            lines.append(f"- {p.name}: {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}{qty}")
+        return {
+            "answer": "Here are the matching products I found:\n" + "\n".join(lines),
+            "title": f"Matching products ({len(selected)})",
+            "source_type": "product",
+            "confidence_score": 0.93,
+        }
 
-        if len(top_services) == 1:
-            s = top_services[0]
-            dur_unit = s.duration_unit if hasattr(s, 'duration_unit') and s.duration_unit else "minutes"
-            dur_str = f" (Duration: {s.duration} {dur_unit})" if s.duration else ""
-            desc_str = f" {s.description}." if s.description else ""
+    # ---------- 4. Clear service request ----------
+    if specific_service_matches and best_service_score >= max(6, best_product_score + 2):
+        top_score = specific_service_matches[0][0]
+        selected = [item[1] for item in specific_service_matches if item[0] >= max(6, top_score - 3)]
+        selected = selected[:12]
+
+        if len(selected) == 1:
+            s = selected[0]
+            parts = [f"Our {s.name} service costs {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}."]
+            if getattr(s, "description", None):
+                parts.append(str(s.description).strip())
+            duration_text = _service_duration(s)
+            if duration_text:
+                parts.append(f"Estimated duration: {duration_text}.")
             return {
-                "answer": f"Our '{s.name}' service is available for {s.currency} {s.price:.2f}.{desc_str}{dur_str}",
+                "answer": " ".join(parts),
                 "title": s.name,
-                "source_type": "service"
-            }
-        else:
-            service_lines = []
-            for s in top_services:
-                service_lines.append(f"- {s.name}: {s.currency} {s.price:.2f}")
-            services_list_str = "\n".join(service_lines)
-            return {
-                "answer": f"We offer the following services matching your query:\n{services_list_str}",
-                "title": f"Services list ({len(top_services)} items)",
-                "source_type": "service"
+                "source_type": "service",
+                "confidence_score": 0.95,
             }
 
-    # Otherwise FAQ is the winner
-    if best_faq_score > 0:
-        top_faqs = sorted(matched_faqs, key=lambda x: x[0], reverse=True)
-        best_faq = top_faqs[0][1]
+        lines = []
+        for s in selected:
+            duration_text = _service_duration(s)
+            duration_suffix = f" — {duration_text}" if duration_text else ""
+            lines.append(f"- {s.name}: {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}{duration_suffix}")
+        return {
+            "answer": "Here are the matching services I found:\n" + "\n".join(lines),
+            "title": f"Matching services ({len(selected)})",
+            "source_type": "service",
+            "confidence_score": 0.93,
+        }
+
+    # ---------- 5. Broad catalogue/list requests ----------
+    # Only use these when no specific entity clearly won above.
+    if has_product_catalogue_intent and not has_service_catalogue_intent and products:
+        lines = []
+        for p in products[:15]:
+            qty = f" — {p.quantity} in stock" if getattr(p, "quantity", None) is not None else ""
+            lines.append(f"- {p.name}: {_money(getattr(p, 'currency', None), getattr(p, 'price', None))}{qty}")
+        extra = ""
+        if len(products) > 15:
+            extra = f"\n\nThere are {len(products)} products in the catalogue. Ask about a product or category for more details."
+        return {
+            "answer": "We sell a range of products, including:\n" + "\n".join(lines) + extra,
+            "title": "Product catalogue",
+            "source_type": "product",
+            "confidence_score": 0.96,
+        }
+
+    if has_service_catalogue_intent and not has_product_catalogue_intent and services:
+        lines = []
+        for s in services[:18]:
+            duration_text = _service_duration(s)
+            duration_suffix = f" — {duration_text}" if duration_text else ""
+            lines.append(f"- {s.name}: {_money(getattr(s, 'currency', None), getattr(s, 'price', None))}{duration_suffix}")
+        return {
+            "answer": "We offer the following services:\n" + "\n".join(lines),
+            "title": "Services catalogue",
+            "source_type": "service",
+            "confidence_score": 0.96,
+        }
+
+    # ---------- 6. FAQ matching ----------
+    # FAQ matching requires more evidence than one shared generic word.
+    faq_matches = []
+    for faq in faqs:
+        question_text = getattr(faq, "question", "") or ""
+        question_tokens = set(_normalise_tokens(question_text))
+        if not question_tokens:
+            continue
+
+        overlap = query_set & question_tokens
+        coverage = len(overlap) / max(1, min(len(query_set), len(question_tokens)))
+        phrase_bonus = 1.0 if query_lower in question_text.lower() or question_text.lower() in query_lower else 0.0
+        score = coverage + phrase_bonus
+
+        # Require either two meaningful shared tokens, a strong short-query overlap, or phrase containment.
+        strong_enough = (
+            len(overlap) >= 2
+            or (len(query_set) <= 2 and coverage >= 0.75)
+            or phrase_bonus > 0
+        )
+        if strong_enough:
+            faq_matches.append((score, faq, overlap, coverage))
+
+    if faq_matches:
+        faq_matches.sort(key=lambda item: item[0], reverse=True)
+        best_score, best_faq, overlap, coverage = faq_matches[0]
         return {
             "answer": best_faq.answer,
             "title": best_faq.question,
-            "source_type": "faq"
+            "source_type": "faq",
+            "confidence_score": min(0.94, max(0.82, 0.82 + (coverage * 0.12))),
         }
 
+    # No forced guess. Let semantic/document RAG handle the question.
     return None
 
 
@@ -343,6 +448,40 @@ def process_rag_chat(
     except Exception as e:
         print(f"[RAG Query Condense] Failed to rewrite query: {e}")
 
+    # 4A. Structured database retrieval before vector search.
+    # This handles catalogue, product, service and FAQ questions deterministically and
+    # avoids forcing broad questions onto one unrelated keyword match.
+    structured_match = find_local_database_match(db, business_id, search_query)
+    if structured_match:
+        structured_confidence = float(structured_match.get("confidence_score", 0.90))
+        sources_data = [{
+            "title": structured_match["title"],
+            "source_type": structured_match["source_type"],
+            "score": structured_confidence,
+        }]
+        print(
+            f"[Structured Retrieval] Matched {structured_match['source_type']}: "
+            f"{structured_match['title']} (confidence={structured_confidence:.2f})"
+        )
+
+        ai_msg_record = ChatMessage(
+            session_id=session.id,
+            sender="ai",
+            message=structured_match["answer"],
+            confidence_score=structured_confidence,
+            ai_response_source=json.dumps(sources_data),
+        )
+        db.add(ai_msg_record)
+        db.commit()
+
+        return {
+            "session_id": session.id,
+            "answer": structured_match["answer"],
+            "confidence_score": structured_confidence,
+            "sources": sources_data,
+            "escalated": False,
+        }
+
     try:
         query_embedding = ai_service.embed_text(search_query)
         # Query FAISS index for this business
@@ -374,28 +513,13 @@ def process_rag_chat(
 
     # 5. Low-Confidence Fallback Handoff
     if top_score < threshold:
-        # Try local DB search fallback first
-        local_match = find_local_database_match(db, business_id, message.strip())
-        if local_match:
-            print(f"[RAG Local Fallback] Score {top_score:.4f} < {threshold:.2f}. Found local match: {local_match['title']}")
-            ai_reply = local_match["answer"]
-            sources_data = [{"title": local_match["title"], "source_type": local_match["source_type"], "score": 0.90}]
-            ai_msg_record = ChatMessage(
-                session_id=session.id,
-                sender="ai",
-                message=ai_reply,
-                confidence_score=0.90,
-                ai_response_source=json.dumps(sources_data)
-            )
-            db.add(ai_msg_record)
-            db.commit()
-            return {
-                "session_id": session.id,
-                "answer": ai_reply,
-                "confidence_score": 0.90,
-                "sources": sources_data,
-                "escalated": False
-            }
+        # Structured retrieval was already attempted above. If both the structured
+        # database lookup and semantic retrieval are uncertain, do not invent a match.
+        # Escalate safely instead.
+        print(
+            f"[RAG Safe Fallback] No reliable structured match and vector score "
+            f"{top_score:.4f} < threshold {threshold:.2f}. Escalating safely."
+        )
 
         # Create Escalation
         escalation = Escalation(
