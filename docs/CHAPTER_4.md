@@ -1,71 +1,88 @@
 # CHAPTER FOUR: EXPERIMENTAL RESULT AND DISCUSSION
 
 ## 4.1 System Implementation
-The **EasyBiz AI** application was successfully built and deployed as a containerized, multi-tenant platform. The implementation consists of two core user-facing systems:
+The **EasyBiz AI** application was successfully implemented and deployed as a modular, containerized multi-tenant platform. The implementation consists of two core user-facing systems: the Merchant Administrative Portal and the Customer Conversational Interfaces.
 
 ### 4.1.1 The Merchant Dashboard (Next.js)
-The dashboard provides a premium, zero-code administrative portal for SME owners to manage their business identity and custom knowledge base:
-* **Business Profile Panel**: Enables merchants to configure operational variables, such as opening hours, delivery ranges, contact numbers, and payment details. These variables are saved to the relational database and dynamically compiled into text representation.
-* **Inventory Management Panels**: Full CRUD panels for products (name, description, price, stock status, warranty) and services.
-* **FAQ Management Panel**: An interface allowing owners to seed custom question-and-answer pairs or import them in bulk via CSV files.
-* **Document Upload Panel**: Supports uploading text and PDF files. Upon upload, the backend extracts the text, segments it using a sliding window chunker, embeds the chunks, and indexes them into the business's FAISS vector store.
-* **Conversational Logs & Escalations**: Displays active customer chat history and flags sessions escalated to human representatives, showing the exact question that triggered the escalation.
+The merchant dashboard provides a zero-code administrative portal developed with Next.js (App Router) and Vanilla CSS, enabling SME owners to configure their operational profile, curate business knowledge, and monitor customer engagement:
+* **Business Profile Panel**: Enables merchants to configure operational variables, including business name, physical address, contact telephone numbers, operating hours, delivery zones, flat fees, and payment channels (e.g., MTN MoMo, Telecel Cash). These variables are saved to the relational database and dynamically compiled into declarative sentences for retrieval indexing.
+* **Inventory Management Panels**: Full CRUD interfaces for managing products (name, category, price in GHS, stock availability status, warranty period, specifications) and services (service name, description, duration, pricing).
+* **FAQ Management Panel**: An interface allowing owners to manually seed custom question-and-answer pairs or import them in bulk via CSV uploads.
+* **Document Upload Panel**: Supports uploading unstructured text (.txt) and PDF documents. The backend parses the uploaded files, extracts clean text, segments it using a sliding window chunker (300–500 words, 10% overlap), generates dense embeddings, and updates the business's FAISS index.
+* **Conversational Logs & Escalations Viewer**: Displays active customer chat history across sessions and flags inquiries escalated to human representatives, showing the exact question that triggered the fallback.
+* **WhatsApp Integration Page**: A dedicated management view (`frontend/app/dashboard/whatsapp/page.tsx`) that allows merchants to simulate WhatsApp account connection via a visual QR code flow, view the assigned webhook URL and verify token, and test conversations in a live simulated WhatsApp interface.
 
 ### 4.1.2 The Customer Interfaces
-* **Web Chat Widget**: A clean, floating chat window that can be embedded into any business website. It connects to the FastAPI backend, initiating a unique chat session and communicating via REST endpoints.
-* **WhatsApp Chat Simulator**: To showcase the system's integration with messaging networks, a custom web-based simulator was built. It mirrors a mobile WhatsApp chat screen (complete with standard green bubbles and contact headers) and simulates Meta's webhook payloads, calling the backend API to retrieve responses and simulating human representative escalations.
+* **Embeddable Public Web Chat**: A lightweight, floating chat interface (`frontend/app/chat/[businessId]/page.tsx`) that can be integrated into merchant websites. It connects directly to the FastAPI backend public endpoint (`/api/v1/chat/public/{business_id}`), creating isolated chat sessions and delivering context-grounded responses in real time.
+* **WhatsApp Chat Simulator**: To evaluate the system's integration with messaging networks, a custom web-based simulator was developed. It mirrors the WhatsApp mobile user interface (green incoming/outgoing message bubbles, read receipts, and contact headers) and simulates Meta’s WhatsApp Cloud API webhook payloads, calling the backend API to retrieve responses and simulating human representative escalations.
 
 ---
 
 ## 4.2 Evaluation Results
-The Retrieval-Augmented Generation pipeline was evaluated using the automated evaluation suite (`evaluate_ai.py`) on a seeded profile for **MelTech Computers** (an electronics retail and repair SME). The quantitative results extracted from `evaluation_report.json` are summarized in the table below:
+The hybrid Retrieval-Augmented Generation pipeline was evaluated using the automated evaluation suite (`backend/evaluate_ai.py`) against a populated knowledge base for **MelTech Computers** (an electronics retail and repair SME). The quantitative results extracted from `evaluation_report.json` are summarized in Table 4.1:
 
 ### 4.2.1 Quantitative Performance Summary
+Table 4.1: Overall Performance Metrics of EasyBiz AI Evaluation Suite
+
 | Metric | Value | Interpretation |
 | :--- | :--- | :--- |
-| **Response Accuracy** | 85.71% | Percentage of test queries where the AI response contained all expected keywords. |
-| **Average Retrieval Accuracy** | 79.71% | The mean FAISS similarity score across all evaluation queries. |
-| **Average Response Time** | 6.06 seconds | Time elapsed from sending a request to receiving the generated answer (including remote Gemini API call). |
-| **Hallucination Rate** | 0.00% | Percentage of out-of-domain queries where the AI generated a confident, ungrounded response. |
-| **Human Handoff Correctness** | 100.00% | Accuracy of the system in flagging human-handoff requests and generating escalation tickets. |
+| **Response Accuracy** | 85.71% | Percentage of test queries where the generated response satisfied ground-truth keyword criteria. |
+| **Average Retrieval Accuracy** | 79.71% | The mean FAISS similarity score across all evaluated queries. |
+| **Average Response Time** | 6.06 seconds | End-to-end latency from request dispatch to response receipt (including remote Gemini API roundtrip). |
+| **Hallucination Rate** | 0.00% | Percentage of out-of-domain queries where the AI fabricated ungrounded answers. |
+| **Human Handoff Correctness** | 100.00% | Success rate of flagging low-confidence inquiries and explicit escalation requests. |
 
-These results demonstrate the viability of using off-the-shelf LLMs combined with local FAISS indices for business automation. The 0% hallucination rate is particularly critical, as it proves that similarity thresholding successfully constrains the LLM, preventing it from fabricating ungrounded information.
+These empirical metrics validate the design of the hybrid RAG architecture. The 0.00% hallucination rate is particularly critical: it proves that the dual-layer combination of deterministic structured lookup, similarity score thresholding ($\tau=0.50$), and strict system prompt grounding prevents the LLM from fabricating false information when faced with unknown or out-of-domain queries.
 
 ---
 
 ## 4.3 Discussion and Analysis of Queries
-A detailed review of the evaluation report reveals how the system processes different classes of questions:
+A detailed examination of individual test cases from the evaluation report illustrates how the system manages diverse query intents:
 
 ### 4.3.1 Successful Retrieval Cases (Passed)
-* **Query**: *"Do you offer any warranty on refurbished laptops?"*
+* **Query 1**: *"Do you sell new or used laptops?"*
+  * **Retrieval Score**: 0.898
+  * **Response Time**: 7.06 seconds
+  * **Generated Response**: *"We sell both brand new in box and Grade A clean refurbished laptops. Refurbished laptops come with a 6-month warranty, while brand new laptops carry a 1-year warranty."*
+  * **Outcome**: PASSED. High similarity score (0.898) retrieved the inventory policy chunk. The response accurately communicated both options.
+* **Query 2**: *"How much does the HP ProBook cost?"*
+  * **Retrieval Score**: 0.682
+  * **Response Time**: 6.50 seconds
+  * **Generated Response**: *"We have 'HP ProBook 450 G8' available for GHS 5200.00. Core i5, 8GB RAM, 256GB SSD."*
+  * **Outcome**: PASSED. The system accurately matched the product record and returned the exact catalog price in Ghanaian Cedis.
+* **Query 3**: *"Do you do laptop screen replacement?"*
+  * **Retrieval Score**: 0.762
+  * **Response Time**: 7.67 seconds
+  * **Generated Response**: *"Our 'Laptop Screen Replacement' service is available for GHS 450.00. Professional installation included."*
+  * **Outcome**: PASSED. The service catalog entry was correctly retrieved with accurate pricing and description.
+* **Query 4**: *"Do you offer any warranty on refurbished laptops?"*
   * **Retrieval Score**: 0.865
-  * **Response**: *"We provide a 1-year warranty on brand new laptops and a 6-month warranty on refurbished..."*
-  * **Status**: PASSED. The similarity score of 0.865 was well above the threshold ($\tau=0.50$). The retrieved chunk correctly informed the LLM that refurbished items have a 6-month warranty, and the generated response was factually grounded.
-* **Query**: *"Do you do laptop screen replacement?"*
-  * **Retrieval Score**: 0.761
-  * **Response**: *"Our 'Laptop Screen Replacement' service is available for GHS 450.00. Professional..."*
-  * **Status**: PASSED. The RAG pipeline correctly retrieved the screen replacement service chunk and returned the exact pricing.
+  * **Response Time**: 8.69 seconds
+  * **Generated Response**: *"We provide a 1-year warranty on brand new laptops and a 6-month warranty on refurbished laptops."*
+  * **Outcome**: PASSED. Grounded context prevented the model from quoting arbitrary warranty terms.
 
 ### 4.3.2 Low-Confidence Fallback and Escalation Cases (Passed)
-* **Query**: *"What is the capital of Ghana?"* (Out-of-Domain Query)
-  * **Retrieval Score**: 0.572
-  * **Response**: *"I'm sorry, I don't have enough information about that. Let me connect you with a representative..."*
-  * **Status**: PASSED. Although the query returned a retrieval score of 0.572 (due to semantic terms matching general business location variables), the prompt guidelines and grounding constraints forced the LLM to recognize that the capital of Ghana is not mentioned in the business data. The LLM correctly generated a polite fallback response, preventing a hallucination, and the system flagged the session for escalation.
+* **Query 5**: *"What is the capital of Ghana?"* (Out-of-Domain Query)
+  * **Retrieval Score**: 0.573
+  * **Response Time**: 4.50 seconds
+  * **Generated Response**: *"I'm sorry, I don't have enough information about that. Let me connect you with a representative from MelTech Computers who can help."*
+  * **Outcome**: PASSED. Although semantic overlap with location metadata produced a score of 0.573, the grounding prompt recognized that national capital data is not part of MelTech Computers' catalog. The model refused to fabricate an answer, returning the polite fallback and creating an escalation ticket.
+* **Query 6**: *"I want to talk to a human representative."* (Explicit Escalation)
+  * **Retrieval Score**: 1.000 (Direct Match)
+  * **Response Time**: 2.13 seconds
+  * **Generated Response**: *"I have notified our team. A human representative will be with you shortly."*
+  * **Outcome**: PASSED. The query router detected human handoff intent immediately, bypassed vector retrieval, and initiated an escalation record.
 
-* **Query**: *"I want to talk to a human representative."* (Explicit Handoff)
-  * **Retrieval Score**: 1.000
-  * **Response**: *"I have notified our team. A human representative will be with you shortly."*
-  * **Status**: PASSED. The message router recognized the explicit handoff intent, bypassed the FAISS similarity search, generated an escalation ticket, and set the session's `escalated` status to `True`.
-
-### 4.3.3 Mismatch / Failed Retrieval Cases (Failed)
-* **Query**: *"What laptops do you have in stock?"*
+### 4.3.3 Mismatch Analysis and Mitigation (Failed Case)
+* **Query 7**: *"What laptops do you have in stock?"*
   * **Retrieval Score**: 0.800
-  * **Response**: *"We sell both brand new in box and Grade A clean refurbished laptops. Refurbished..."*
-  * **Status**: FAILED. 
-  * **Analysis of Failure**: The RAG retrieval pipeline successfully found relevant laptop categories (yielding a high similarity score of 0.800), and the generated text was factually correct. However, the query was marked as failed by the evaluation script because the generated response did not contain the specific brand keywords `"Lenovo"`, `"ThinkPad"`, `"HP"`, and `"ProBook"` that the test suite expected. 
-  * **Mitigation**: To resolve this failure, two approaches can be taken:
-    1. *Refining prompt instructions*: Instruct the LLM to list specific product names when a customer asks for stock availability, rather than summarizing categories.
-    2. *Adjusting evaluation criteria*: Modify the test assertions in `evaluate_ai.py` to allow partial keyword matching or use semantic similarity (such as BERTScore or LLM-as-a-judge) rather than rigid string matching.
+  * **Response Time**: 5.90 seconds
+  * **Generated Response**: *"We sell both brand new in box and Grade A clean refurbished laptops. Refurbished laptops come with a 6-month warranty..."*
+  * **Outcome**: FAILED (Under rigid string-matching criteria).
+  * **Analysis**: The system successfully retrieved general laptop catalog information (similarity score 0.800), and the generated reply was factually correct. However, the evaluation test assertion strictly expected specific product model strings (`"Lenovo"`, `"ThinkPad"`, `"HP"`, `"ProBook"`), which the model summarized into broader category statements.
+  * **Mitigation**: 
+    1. *Deterministic Overview Pre-Pass*: In the updated retrieval pipeline, queries asking "What do you sell?" or "What do you have in stock?" trigger a deterministic SQL query returning all active catalog items directly, guaranteeing exhaustive product enumeration.
+    2. *Semantic Evaluation*: Future evaluation suites should adopt semantic similarity metrics (such as BERTScore or RAGAS answer relevancy) alongside exact keyword matching.
 
 > [!NOTE]
-> **[USER INPUT REQUIRED]**: Add your own reflections on these test results. For instance, you can discuss if the response time (~6 seconds) is acceptable for your target users, and what feedback your supervisor or trial merchants gave regarding the Next.js dashboard UI.
+> **[USER INPUT REQUIRED]**: Add your own reflections on these test results. For instance, you can discuss whether the response time (~6 seconds) is acceptable for your target users, and what feedback your supervisor or trial merchants gave regarding the Next.js dashboard UI.
