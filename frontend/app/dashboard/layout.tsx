@@ -8,10 +8,34 @@ import { useTheme } from '@/components/Providers';
 import { Sun, Moon } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout, businesses, activeBusiness, setActiveBusiness } = useAuth();
+  const { user, token, loading, logout, businesses, activeBusiness, setActiveBusiness } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingEscalationsCount, setPendingEscalationsCount] = useState(0);
+
+  // Poll for pending customer escalations
+  React.useEffect(() => {
+    let isMounted = true;
+    async function checkEscalations() {
+      if (!activeBusiness?.id || !token) return;
+      try {
+        const { getBusinessEscalations } = await import('@/services/chat');
+        const list = await getBusinessEscalations(activeBusiness.id, token, 'pending');
+        if (isMounted) {
+          setPendingEscalationsCount(list.length);
+        }
+      } catch (err) {
+        // Silently ignore background poll errors
+      }
+    }
+    checkEscalations();
+    const timer = setInterval(checkEscalations, 15000); // 15 seconds
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [activeBusiness?.id, token]);
 
   // Sidebar Links
   const navItems = [
@@ -151,14 +175,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.name}
                 href={item.path}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition duration-200 ${
+                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition duration-200 ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/30 font-semibold shadow-sm dark:shadow-none'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                 }`}
               >
-                {item.icon}
-                {item.name}
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  <span>{item.name}</span>
+                </div>
+                {item.path === '/dashboard/chat-history' && pendingEscalationsCount > 0 && (
+                  <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-500 text-white shadow-sm animate-pulse">
+                    {pendingEscalationsCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -257,14 +288,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     key={item.name}
                     href={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium ${
+                    className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium ${
                       isActive 
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' 
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40'
                     }`}
                   >
-                    {item.icon}
-                    {item.name}
+                    <div className="flex items-center gap-3">
+                      {item.icon}
+                      <span>{item.name}</span>
+                    </div>
+                    {item.path === '/dashboard/chat-history' && pendingEscalationsCount > 0 && (
+                      <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-500 text-white shadow-sm animate-pulse">
+                        {pendingEscalationsCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

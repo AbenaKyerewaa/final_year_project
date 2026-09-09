@@ -118,20 +118,35 @@ Incoming Customer Query
 3. **Stage 3: Dense Semantic Vector Search (FAISS)**:
    The search query is embedded using the active embedding model (`text-embedding-004` or `all-MiniLM-L6-v2`). The backend dynamically loads the FAISS index strictly assigned to that `business_id` (`vector_indices/{business_id}/index.faiss`) and retrieves the top $K$ ($K=3$) most similar chunks.
 4. **Stage 4: Dual-Layer Guardrail and Safe Escalation**:
-   The maximum similarity score ($S_{\max}$) is compared against the confidence threshold ($\tau = 0.50$). If $S_{\max} < \tau$, the query is classified as low confidence. The system suppresses generation, returns a polite fallback ("I'm sorry, I don't have enough information about that. Let me connect you with a representative."), and automatically logs an Escalation record in the database for the business owner.
+   The maximum similarity score ($S_{\max}$) is compared against the confidence threshold ($\tau = 0.50$). If $S_{\max} < \tau$ or if the user explicitly triggers handoff keywords ("human", "agent", "manager"), the query is classified as an escalation candidate. The system suppresses speculative generation, returns a context-preserving fallback ("I don't have enough details to answer that accurately, but I've alerted our team! Please leave your WhatsApp or phone number so we can follow up directly..."), and automatically creates an `Escalation` record in the database.
 5. **Stage 5: Context-Bounded LLM Generation**:
    If $S_{\max} \ge \tau$, the retrieved chunks are formatted into an isolated context block. The LLM (Google Gemini `gemini-1.5-flash`) is executed with strict system prompt grounding: it is instructed to answer exclusively using the retrieved text and refuse to speculate on missing information.
 
-### 3.5.3 Validation and Testing
+### 3.5.3 Smart Hybrid Escalation and Real-Time Alert Architecture
+To resolve the Chatbot Bypass Dilemma while ensuring high-touch customer service, EasyBiz AI incorporates an asynchronous, multi-channel escalation pipeline:
+1. **In-Chat Contact / Lead Capture**: When an escalation occurs on the public web chat widget, the client interface renders an interactive contact card. Customers enter their telephone or WhatsApp number, which is transmitted via `POST /chat/{business_id}/contact` and persisted directly to the active `ChatSession` record. Furthermore, heuristic regex extraction (`(?:(?:\+?233)|0)[25][0-9]{8}`) automatically detects phone numbers embedded in natural customer messages.
+2. **Asynchronous Out-of-Band Notification Dispatcher**: To avoid adding latency to the chat response, the backend dispatches notifications asynchronously via FastAPI `BackgroundTasks`. The notification worker (`app/utils/email_alerts.py`) compiles a structured, responsive HTML and plain text email delivered to the business owner's email address (`business.owner.email`). The alert includes:
+   * Business profile identity and incoming channel context (Web Chat or WhatsApp).
+   * Exact customer inquiry text snippet and escalation trigger reason.
+   * Customer contact identifier (phone and name) when available.
+   * A direct deep link to the merchant administrative transcript (`/dashboard/chat-history/{session_id}`).
+   * A pre-formatted, one-click WhatsApp action link (`https://wa.me/{clean_phone}?text=...`) enabling the merchant to open WhatsApp directly from their smartphone and initiate immediate communication with the customer.
+3. **Dashboard Real-Time Indicators & One-Click Resolution**:
+   * The administrative navigation sidebar polls for pending escalations, displaying an amber/red pulsing counter next to the Chat History link.
+   * The dashboard home view features an urgent alert banner summarizing active inquiries requiring attention.
+   * Within the chat session transcript view (`/dashboard/chat-history/{session_id}`), merchants can click "Reply via WhatsApp" or submit a direct message as an authenticated representative via `POST /chat-sessions/{session_id}/reply`, which automatically updates the escalation record status to `resolved`.
+
+### 3.5.4 Validation and Testing
 System correctness and stability were verified through automated test suites:
 * `test_auth.py`: Verifies multi-tenant password hashing, JWT generation, and token expiration.
 * `test_business.py`: Validates CRUD operations for business profiles.
 * `test_products_services.py`: Assesses product and service creation, editing, and stock toggling.
 * `test_faqs.py`: Tests single and bulk FAQ creation and CSV parsing.
 * `test_phase14.py`: Tests the WhatsApp webhook endpoint simulator, payload verification, and inbound messaging.
+* `test_escalation_alert.py`: Verifies end-to-end escalation triggering, asynchronous email notification generation, in-chat lead capture, dashboard pending query filtering, and merchant human reply auto-resolution.
 * `test_manual_flows.py`: Executes end-to-end user workflows from merchant onboarding to customer chat and escalation.
 
-### 3.5.4 Evaluation of Models
+### 3.5.5 Evaluation of Models
 The quantitative performance of the hybrid RAG architecture was evaluated using a dedicated benchmarking suite (`backend/evaluate_ai.py`). The evaluation dataset comprises test queries executed against the **MelTech Computers** knowledge base, categorized into:
 * **In-Domain Retrieval Queries**: Queries testing specific pricing, laptop models, repair services, and warranty periods.
 * **Out-of-Domain Queries**: Unrelated queries (e.g., "What is the capital of Ghana?") designed to test threshold guardrails and hallucination suppression.

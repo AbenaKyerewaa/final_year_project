@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getChatSessionDetails, updateEscalationStatus, ChatSessionDetail } from '@/services/chat';
+import { getChatSessionDetails, updateEscalationStatus, replyToChatSession, ChatSessionDetail } from '@/services/chat';
 
 interface PageProps {
   params: Promise<{ sessionId: string }>;
@@ -20,6 +20,8 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => {
     async function loadSession() {
@@ -78,6 +80,40 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
     } finally {
       setResolving(false);
     }
+  };
+
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim() || !session || !token || sendingReply) return;
+    setSendingReply(true);
+    try {
+      const newMsg = await replyToChatSession(session.id, replyText.trim(), token);
+      setSession(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          escalated: false,
+          escalation_status: 'resolved',
+          messages: [...prev.messages, newMsg]
+        };
+      });
+      setReplyText('');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Failed to send reply.");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const formatWhatsAppUrl = (phone?: string) => {
+    if (!phone) return '#';
+    let clean = phone.replace(/[^0-9]/g, '');
+    if (clean.length === 10 && clean.startsWith('0')) {
+      clean = '233' + clean.substring(1);
+    }
+    const text = encodeURIComponent(`Hello! This is regarding your recent inquiry on our business chat assistant.`);
+    return `https://wa.me/${clean}?text=${text}`;
   };
 
   const formatDate = (dateStr: string) => {
@@ -159,13 +195,25 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
               <span className="text-xs text-slate-600 dark:text-slate-350 mt-0.5">This session triggered an escalation because the customer requested human support or similarity confidence was too low.</span>
             </div>
           </div>
-          <button
-            onClick={handleResolve}
-            disabled={resolving}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-bold text-xs uppercase rounded transition shrink-0 cursor-pointer shadow-md"
-          >
-            {resolving ? "Saving..." : "Mark as Resolved"}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {session.customer_phone && (
+              <a
+                href={formatWhatsAppUrl(session.customer_phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase rounded transition inline-flex items-center gap-1.5 shadow-md"
+              >
+                <span>💬 Reply via WhatsApp</span>
+              </a>
+            )}
+            <button
+              onClick={handleResolve}
+              disabled={resolving}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-white font-bold text-xs uppercase rounded transition cursor-pointer shadow-md"
+            >
+              {resolving ? "Saving..." : "Mark as Resolved"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -182,7 +230,11 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
             >
               {/* Sender Label */}
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1 mb-1">
-                {msg.sender === 'customer' ? 'Customer' : 'AI Assistant'}
+                {msg.sender === 'customer'
+                  ? 'Customer'
+                  : msg.sender === 'human'
+                  ? 'Representative (You)'
+                  : 'AI Assistant'}
               </span>
 
               {/* Message Bubble */}
@@ -190,6 +242,8 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
                 className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.sender === 'customer'
                     ? 'bg-blue-600 text-white rounded-br-none'
+                    : msg.sender === 'human'
+                    ? 'bg-emerald-700 border border-emerald-600 text-white rounded-bl-none shadow-md'
                     : 'bg-slate-900 border border-slate-800 text-slate-250 rounded-bl-none'
                 }`}
               >
@@ -232,6 +286,35 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
           );
         })}
       </div>
+
+      {/* Merchant Live Reply Box */}
+      <form onSubmit={handleSendReply} className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/40 backdrop-blur-md shadow-md flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            Reply as Merchant / Human Representative
+          </span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">
+            Replying automatically marks any active escalation as resolved
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Type your reply to this customer..."
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            className="flex-1 px-4 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            disabled={sendingReply || !replyText.trim()}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shrink-0 cursor-pointer shadow-md"
+          >
+            {sendingReply ? "Sending..." : "Send Reply"}
+          </button>
+        </div>
+      </form>
 
     </div>
   );

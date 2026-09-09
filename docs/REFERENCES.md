@@ -16,6 +16,8 @@
 14. **Oviawe, E. I.** (2020). *Conversational commerce: The role of WhatsApp Business in driving micro-enterprise growth in sub-Saharan Africa*. African Journal of Information Systems, 12(3), pp. 210–229.
 15. **Asare, B. and Mensah, A. O.** (2022). *Mobile Money payments adoption among Ghanaian SMEs: Drivers, barriers, and implications for financial inclusion*. Journal of Financial Services in Emerging Markets, 9(1), pp. 45–61.
 16. **Meta AI**. (2023). *WhatsApp Cloud API Reference Documentation*. Available at: https://developers.facebook.com/docs/whatsapp/cloud-api [Accessed 20 August 2026].
+17. **Wang, D., Weisz, J. D., Muller, M., Ram, P., Geyer, W., Dugan, C., Talamadupula, K. and Duesterwald, E.** (2022). *Human-AI collaboration in customer service: Architectural patterns, opportunities, and challenges*. ACM Transactions on Computer-Human Interaction, 29(4), pp. 1–38.
+18. **Følstad, A. and Brandtzæg, P. B.** (2017). *Chatbots and the new world of HCI*. Interactions, 24(4), pp. 38–42.
 
 > [!NOTE]
 > **[USER INPUT REQUIRED]**: Review the references list. If your department or university requires Mendeley/EndNote integrations, or a specific citation style (e.g., IEEE, Harvard, APA), you can import this list into your citation manager or rearrange it according to the requested formatting rules.

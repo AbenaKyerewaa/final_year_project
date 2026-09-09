@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database.session import get_db
@@ -16,13 +16,14 @@ from app.auth.security import get_current_user
 
 from app.rag.vector_store import FAISSVectorStore
 from app.ai_providers import AIService
+from app.utils.email_alerts import send_escalation_alert_email
 # from app.speech_providers import get_stt_provider
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 HANDOFF_KEYWORDS = ["human", "agent", "staff", "call me", "i want to talk to someone", "manager"]
-SAFE_FALLBACK = "I'm sorry, I don't have enough information about that. Let me connect you with a human representative, or please ask another question."
+SAFE_FALLBACK = "I don't have enough details to answer that accurately, but I've alerted our team! Please leave your WhatsApp or phone number so we can follow up directly, or let us know how we can help."
 
 # --- Pydantic Schemas ---
 
@@ -60,6 +61,21 @@ from app.products.models import Product
 def is_handoff_requested(message: str) -> bool:
     msg = message.lower()
     return any(keyword in msg for keyword in HANDOFF_KEYWORDS)
+
+
+def extract_phone_number(text: str) -> Optional[str]:
+    """Attempts to find a telephone or WhatsApp number (Ghanaian or international) in message text."""
+    if not text:
+        return None
+    # Ghanaian 10-digit format (02x, 05x) or with country code (+233)
+    match = re.search(r'(?:\+?233|0)[25][0-9]{8}', text)
+    if match:
+        return match.group(0)
+    # Generic international 9 to 15 digit telephone match
+    generic_match = re.search(r'\+?[0-9]{9,15}', text)
+    if generic_match:
+        return generic_match.group(0)
+    return None
 
 
 def _normalise_tokens(text: str) -> List[str]:
@@ -473,7 +489,8 @@ def process_rag_chat(
     channel: str,
     customer_name: Optional[str] = None,
     customer_phone: Optional[str] = None,
-    session_id: Optional[uuid.UUID] = None
+    session_id: Optional[uuid.UUID] = None,
+    background_tasks: Optional[BackgroundTasks] = None
 ) -> dict:
     """Core RAG Chat pipeline helper.
     Returns a dictionary with session_id, answer, confidence_score, sources, and escalated flag.
@@ -511,6 +528,25 @@ def process_rag_chat(
         db.add(session)
         db.commit()
         db.refresh(session)
+    else:
+        # If session already existed, update customer details if newly provided
+        updated = False
+        if customer_phone and not session.customer_phone:
+            session.customer_phone = customer_phone
+            updated = True
+        if customer_name and not session.customer_name:
+            session.customer_name = customer_name
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(session)
+
+    # Also detect if the customer typed their phone number directly in the message
+    detected_num = extract_phone_number(message)
+    if detected_num and not session.customer_phone:
+        session.customer_phone = detected_num
+        db.commit()
+        db.refresh(session)
 
     # Save customer message to history
     cust_msg_record = ChatMessage(
@@ -532,7 +568,7 @@ def process_rag_chat(
         db.add(escalation)
         
         # Save AI handoff response to history
-        handoff_reply = "I have notified our team. A human representative will be with you shortly."
+        handoff_reply = "I have notified our management team. Please share your phone or WhatsApp number so a representative can reach you directly."
         ai_msg_record = ChatMessage(
             session_id=session.id,
             sender="ai",
@@ -542,6 +578,35 @@ def process_rag_chat(
         )
         db.add(ai_msg_record)
         db.commit()
+
+        # Dispatch real-time escalation alert email to business owner
+        if business and business.owner:
+            owner_user = business.owner
+            if background_tasks:
+                background_tasks.add_task(
+                    send_escalation_alert_email,
+                    owner_email=owner_user.email,
+                    owner_name=owner_user.full_name,
+                    business_name=business.business_name,
+                    session_id=session.id,
+                    customer_message=message,
+                    customer_phone=session.customer_phone,
+                    customer_name=session.customer_name,
+                    channel=session.channel,
+                    reason="Customer requested human handoff"
+                )
+            else:
+                send_escalation_alert_email(
+                    owner_email=owner_user.email,
+                    owner_name=owner_user.full_name,
+                    business_name=business.business_name,
+                    session_id=session.id,
+                    customer_message=message,
+                    customer_phone=session.customer_phone,
+                    customer_name=session.customer_name,
+                    channel=session.channel,
+                    reason="Customer requested human handoff"
+                )
         
         return {
             "session_id": session.id,
@@ -722,6 +787,35 @@ def process_rag_chat(
         )
         db.add(ai_msg_record)
         db.commit()
+
+        # Dispatch real-time escalation alert email to business owner
+        if business and business.owner:
+            owner_user = business.owner
+            if background_tasks:
+                background_tasks.add_task(
+                    send_escalation_alert_email,
+                    owner_email=owner_user.email,
+                    owner_name=owner_user.full_name,
+                    business_name=business.business_name,
+                    session_id=session.id,
+                    customer_message=message,
+                    customer_phone=session.customer_phone,
+                    customer_name=session.customer_name,
+                    channel=session.channel,
+                    reason=f"Low confidence score ({top_score:.3f})"
+                )
+            else:
+                send_escalation_alert_email(
+                    owner_email=owner_user.email,
+                    owner_name=owner_user.full_name,
+                    business_name=business.business_name,
+                    session_id=session.id,
+                    customer_message=message,
+                    customer_phone=session.customer_phone,
+                    customer_name=session.customer_name,
+                    channel=session.channel,
+                    reason=f"Low confidence score ({top_score:.3f})"
+                )
         
         return {
             "session_id": session.id,
@@ -859,6 +953,7 @@ def get_public_business_info(
 def handle_chat_message(
     business_id: uuid.UUID,
     payload: ChatRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Customer-facing AI Chat endpoint using RAG (Retrieval-Augmented Generation).
@@ -871,7 +966,8 @@ def handle_chat_message(
         channel=payload.channel,
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
-        session_id=payload.session_id
+        session_id=payload.session_id,
+        background_tasks=background_tasks
     )
     return ChatResponse(
         session_id=res["session_id"],
@@ -880,6 +976,66 @@ def handle_chat_message(
         sources=res["sources"],
         escalated=res["escalated"]
     )
+
+
+class CustomerContactRequest(BaseModel):
+    session_id: uuid.UUID
+    customer_phone: str = Field(..., min_length=5, description="Customer's phone or WhatsApp number")
+    customer_name: Optional[str] = Field(None, description="Customer's name")
+
+
+@router.post("/{business_id}/contact")
+def save_customer_contact(
+    business_id: uuid.UUID,
+    payload: CustomerContactRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Allows customer on chat widget to submit their phone/WhatsApp number for follow-up."""
+    session = db.query(ChatSession).filter(
+        ChatSession.id == payload.session_id,
+        ChatSession.business_id == business_id
+    ).first()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat session not found."
+        )
+        
+    session.customer_phone = payload.customer_phone.strip()
+    if payload.customer_name:
+        session.customer_name = payload.customer_name.strip()
+    db.commit()
+    db.refresh(session)
+
+    # If there is a pending escalation, send an updated email notification to the owner
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if business and business.owner:
+        owner_user = business.owner
+        latest_cust_msg = db.query(ChatMessage).filter(
+            ChatMessage.session_id == session.id,
+            ChatMessage.sender == "customer"
+        ).order_by(ChatMessage.created_at.desc()).first()
+        snippet = latest_cust_msg.message if latest_cust_msg else "Customer provided contact info for pending escalation"
+        background_tasks.add_task(
+            send_escalation_alert_email,
+            owner_email=owner_user.email,
+            owner_name=owner_user.full_name,
+            business_name=business.business_name,
+            session_id=session.id,
+            customer_message=snippet,
+            customer_phone=session.customer_phone,
+            customer_name=session.customer_name,
+            channel=session.channel,
+            reason="Customer submitted contact number for pending inquiry"
+        )
+
+    return {
+        "status": "success",
+        "session_id": session.id,
+        "customer_phone": session.customer_phone,
+        "customer_name": session.customer_name
+    }
 
 
 import tempfile
@@ -1139,15 +1295,20 @@ def get_chat_session_details(
 @dashboard_router.get("/businesses/{business_id}/escalations", response_model=List[EscalationResponse])
 def get_business_escalations(
     business_id: uuid.UUID,
+    status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """List all customer escalations for a specific business profile. Restricted to owner/staff/admin."""
     verify_dashboard_access(business_id, db, current_user)
     
-    escalations = db.query(Escalation).filter(
+    query = db.query(Escalation).filter(
         Escalation.business_id == business_id
-    ).order_by(Escalation.created_at.desc()).all()
+    )
+    if status:
+        query = query.filter(Escalation.status == status.lower().strip())
+        
+    escalations = query.order_by(Escalation.created_at.desc()).all()
     
     result = []
     for esc in escalations:
@@ -1165,6 +1326,46 @@ def get_business_escalations(
             channel=session.channel if session else "web"
         ))
     return result
+
+
+class HumanReplyRequest(BaseModel):
+    message: str = Field(..., min_length=1, description="Message content from merchant representative")
+
+
+@dashboard_router.post("/chat-sessions/{session_id}/reply", response_model=ChatMessageResponse)
+def reply_to_chat_session(
+    session_id: uuid.UUID,
+    payload: HumanReplyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Merchant sends a direct human reply to a chat session, automatically resolving pending escalations."""
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat session not found."
+        )
+    verify_dashboard_access(session.business_id, db, current_user)
+    
+    reply_record = ChatMessage(
+        session_id=session.id,
+        sender="human",
+        message=payload.message.strip()
+    )
+    db.add(reply_record)
+    
+    # Auto-resolve any pending escalations on this session
+    pending_escalations = db.query(Escalation).filter(
+        Escalation.session_id == session.id,
+        Escalation.status == "pending"
+    ).all()
+    for esc in pending_escalations:
+        esc.status = "resolved"
+        
+    db.commit()
+    db.refresh(reply_record)
+    return reply_record
 
 
 @dashboard_router.put("/escalations/{escalation_id}", response_model=EscalationResponse)

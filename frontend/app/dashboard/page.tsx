@@ -17,6 +17,7 @@ export default function DashboardHome() {
   const [reindexSuccess, setReindexSuccess] = useState<string | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [pendingEscalations, setPendingEscalations] = useState<any[]>([]);
 
   const handleCopyLink = async () => {
     if (!activeBusiness) return;
@@ -68,7 +69,20 @@ export default function DashboardHome() {
         setStatsLoading(false);
       }
     }
+
+    async function fetchPendingEscalations() {
+      if (!activeBusiness || !token) return;
+      try {
+        const { getBusinessEscalations } = await import('@/services/chat');
+        const list = await getBusinessEscalations(activeBusiness.id, token, 'pending');
+        setPendingEscalations(list);
+      } catch (err) {
+        // Silently ignore
+      }
+    }
+
     fetchStats();
+    fetchPendingEscalations();
   }, [activeBusiness, token]);
 
   if (activeBusinessLoading) {
@@ -95,6 +109,38 @@ export default function DashboardHome() {
           </p>
         </div>
       </div>
+
+      {/* Urgent Escalation Alert Banner */}
+      {pendingEscalations.length > 0 && (
+        <div className="p-4 md:p-5 rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-950 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-extrabold text-rose-400">
+                  {pendingEscalations.length} Customer {pendingEscalations.length === 1 ? 'Inquiry Requires' : 'Inquiries Require'} Attention
+                </span>
+                <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded bg-rose-500/30 text-rose-300 border border-rose-500/40">
+                  Action Needed
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                The AI assistant flagged customer questions that need your direct response. Review the chat transcripts to respond.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/chat-history"
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs uppercase rounded-xl transition shrink-0 text-center shadow-md cursor-pointer"
+          >
+            Review Inquiries &rarr;
+          </Link>
+        </div>
+      )}
 
       {activeBusiness ? (
         <>

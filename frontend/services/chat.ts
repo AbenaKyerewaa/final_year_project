@@ -125,10 +125,11 @@ export async function getChatSessionDetails(sessionId: string, token: string): P
 }
 
 /**
- * Lists all escalations for a business.
+ * Lists all escalations for a business with optional status filter.
  */
-export async function getBusinessEscalations(businessId: string, token: string): Promise<EscalationResponse[]> {
-  const response = await fetch(`${API_URL}/businesses/${businessId}/escalations`, {
+export async function getBusinessEscalations(businessId: string, token: string, status?: string): Promise<EscalationResponse[]> {
+  const queryParam = status ? `?status=${encodeURIComponent(status)}` : '';
+  const response = await fetch(`${API_URL}/businesses/${businessId}/escalations${queryParam}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -162,6 +163,52 @@ export async function updateEscalationStatus(escalationId: string, status: strin
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to update escalation.');
+  }
+
+  return response.json();
+}
+
+/**
+ * Allows a customer to submit their contact information (phone/WhatsApp) on the chat widget.
+ */
+export async function saveCustomerContact(
+  businessId: string,
+  payload: { session_id: string; customer_phone: string; customer_name?: string }
+): Promise<{ status: string; session_id: string; customer_phone: string; customer_name?: string }> {
+  const response = await fetch(`${API_URL}/chat/${businessId}/contact`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to submit contact information.');
+  }
+
+  return response.json();
+}
+
+/**
+ * Allows a merchant/business owner to send a human reply directly to a chat session.
+ */
+export async function replyToChatSession(sessionId: string, message: string, token: string): Promise<ChatMessageResponse> {
+  const response = await fetch(`${API_URL}/chat-sessions/${sessionId}/reply`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ message })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to send human reply.');
   }
 
   return response.json();

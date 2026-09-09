@@ -45,6 +45,13 @@ export default function CustomerChat({ params }: PageProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Contact capture states for escalations
+  const [hasEscalation, setHasEscalation] = useState(false);
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [submittingContact, setSubmittingContact] = useState(false);
+
   // Voice recording states & refs (Disabled for now)
   /*
   const [isRecording, setIsRecording] = useState(false);
@@ -198,6 +205,10 @@ export default function CustomerChat({ params }: PageProps) {
         escalated: response.escalated
       };
       setMessages(prev => [...prev, aiMsg]);
+
+      if (response.escalated) {
+        setHasEscalation(true);
+      }
     } catch (err: any) {
       console.error("Error sending message:", err);
       const errorMsg: Message = {
@@ -208,6 +219,47 @@ export default function CustomerChat({ params }: PageProps) {
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactPhone.trim() || !sessionId || submittingContact) return;
+    setSubmittingContact(true);
+    try {
+      const res = await fetch(`${API_URL}/chat/${businessId}/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          customer_phone: contactPhone.trim(),
+          customer_name: contactName.trim() || null
+        })
+      });
+      if (res.ok) {
+        setContactSubmitted(true);
+        const nameSuffix = contactName.trim() ? ` (${contactName.trim()})` : '';
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: 'customer',
+            text: `My WhatsApp/contact number is: ${contactPhone.trim()}${nameSuffix}`,
+            timestamp: new Date()
+          },
+          {
+            sender: 'ai',
+            text: `Thank you! I have forwarded your contact number to the management team at ${business?.business_name || 'our business'}. A representative will follow up with you on WhatsApp or phone shortly.`,
+            timestamp: new Date()
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error("Failed to submit contact:", err);
+    } finally {
+      setSubmittingContact(false);
     }
   };
 
@@ -493,6 +545,45 @@ export default function CustomerChat({ params }: PageProps) {
               <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
               <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
             </div>
+          </div>
+        )}
+
+        {/* Contact Capture Card for Escalated Inquiries */}
+        {hasEscalation && !contactSubmitted && (
+          <div className="max-w-md mr-auto p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-black backdrop-blur-md shadow-2xl flex flex-col gap-2.5 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+              <span className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
+                Management Notification
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Our team has been alerted! Leave your WhatsApp or phone number so our team can follow up with you directly:
+            </p>
+            <form onSubmit={handleContactSubmit} className="flex flex-col sm:flex-row gap-2 mt-1">
+              <input
+                type="text"
+                placeholder="Your Name (optional)"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                className="w-full sm:w-1/3 px-3 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+              <input
+                type="tel"
+                placeholder="e.g. 024 123 4567 (WhatsApp)"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                required
+              />
+              <button
+                type="submit"
+                disabled={submittingContact || !contactPhone.trim()}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white transition shrink-0 shadow-md cursor-pointer"
+              >
+                {submittingContact ? "Sending..." : "Submit Contact"}
+              </button>
+            </form>
           </div>
         )}
 

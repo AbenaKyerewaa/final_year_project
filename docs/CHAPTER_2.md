@@ -94,3 +94,21 @@ Furthermore, business data is heavily fragmented across phone galleries, notes, 
 
 > [!NOTE]
 > **[USER INPUT REQUIRED]**: Insert additional citations, academic papers, or local statistics on Ghanaian internet penetration, mobile money transaction volume, or SME challenges here to enrich this section.
+
+---
+
+## 2.6 Human-in-the-Loop (HITL) and The Chatbot Bypass Dilemma
+While automated conversational agents can resolve a substantial majority of routine, informational queries, complete autonomy in commercial customer support is neither feasible nor desirable. In real-world enterprise environments, automated agents inevitably encounter low-confidence retrieval states, complex customized order negotiations, or subjective customer complaints that necessitate human judgment. Consequently, modern software architectures incorporate **Human-in-the-Loop (HITL)** paradigms to bridge the gap between machine efficiency and human expertise (Wang et al., 2022).
+
+### 2.6.1 The Chatbot Bypass Dilemma (Conversational Disintermediation)
+A prevalent design failure in conversational customer service is the **Chatbot Bypass Dilemma**, also known as conversational disintermediation (Følstad & Brandtzæg, 2017). When an automated bot fails to answer a customer question and simply responds by exposing the business owner's personal telephone number or direct contact handle, customers immediately save the direct number. In subsequent interactions, customers bypass the conversational assistant entirely—even for basic inquiries such as operating hours or product prices—and revert to calling or messaging the owner directly. 
+
+This disintermediation directly undermines the primary purpose of deploying an AI assistant: relieving the merchant of repetitive operational overhead. For Ghanaian micro-enterprises with solo founders, direct customer calling results in severe context switching, fragmented order records, and operational burnout.
+
+### 2.6.2 Tiered Asynchronous Escalation and Lead Capture
+To resolve the bypass trap without stranding the customer, contemporary customer support architectures employ a **tiered, asynchronous escalation framework**:
+1. **In-Chat Lead Capture**: Rather than passively refusing to answer or exposing raw private contact numbers, the automated assistant explicitly informs the customer that their inquiry has been escalated to management and prompts them for their telephone/WhatsApp number directly within the conversational interface.
+2. **Out-of-Band Real-Time Notifications**: Small business owners do not maintain constant surveillance over administrative web portals. To eliminate lead response latency, the backend triggers asynchronous out-of-band notification events (such as formatted transactional emails or SMS alerts) directly to the merchant's personal device, encapsulating the customer's query, contact details, and session deep link.
+3. **One-Click Merchant Resolution**: Upon receiving the notification, the merchant can review the conversation transcript and either execute a one-click response via official messaging channels (e.g., deep linking into WhatsApp with pre-filled context) or reply through the web console as an authenticated representative.
+
+This architectural pattern preserves the AI assistant as the primary operational shield while guaranteeing that high-value sales leads and edge cases receive prompt, high-touch human attention.
