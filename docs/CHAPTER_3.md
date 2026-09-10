@@ -124,17 +124,18 @@ Incoming Customer Query
 
 ### 3.5.3 Smart Hybrid Escalation and Real-Time Alert Architecture
 To resolve the Chatbot Bypass Dilemma while ensuring high-touch customer service, EasyBiz AI incorporates an asynchronous, multi-channel escalation pipeline:
-1. **In-Chat Contact / Lead Capture**: When an escalation occurs on the public web chat widget, the client interface renders an interactive contact card. Customers enter their telephone or WhatsApp number, which is transmitted via `POST /chat/{business_id}/contact` and persisted directly to the active `ChatSession` record. Furthermore, heuristic regex extraction (`(?:(?:\+?233)|0)[25][0-9]{8}`) automatically detects phone numbers embedded in natural customer messages.
+1. **In-Platform Handoff Continuity**: When an escalation occurs on the public web chat widget, the client interface informs the customer that the business owner has been notified and asks them to keep the same chat open or check back shortly. This prevents customers from bypassing the chatbot through private phone or WhatsApp contact while preserving a clear path to human support.
 2. **Asynchronous Out-of-Band Notification Dispatcher**: To avoid adding latency to the chat response, the backend dispatches notifications asynchronously via FastAPI `BackgroundTasks`. The notification worker (`app/utils/email_alerts.py`) compiles a structured, responsive HTML and plain text email delivered to the business owner's email address (`business.owner.email`). Delivery prioritizes Resend transactional email through `RESEND_API_KEY`, falls back to SMTP when configured, and finally uses console simulation logging for local demos without email credentials. The alert includes:
    * Business profile identity and incoming channel context (Web Chat or WhatsApp).
    * Exact customer inquiry text snippet and escalation trigger reason.
-   * Customer contact identifier (phone and name) when available. If the first alert is sent before the customer enters a number, the subsequent `POST /chat/{business_id}/contact` request triggers an updated email containing the submitted phone or WhatsApp number.
+   * A direct deep link to the merchant administrative transcript (`/dashboard/chat-history/{session_id}`), where the owner can respond inside the same session.
    * A direct deep link to the merchant administrative transcript (`/dashboard/chat-history/{session_id}`).
    * A pre-formatted, one-click WhatsApp action link (`https://wa.me/{clean_phone}?text=...`) enabling the merchant to open WhatsApp directly from their smartphone and initiate immediate communication with the customer.
 3. **Dashboard Real-Time Indicators & One-Click Resolution**:
    * The administrative navigation sidebar polls for pending escalations, displaying an amber/red pulsing counter next to the Chat History link.
    * The dashboard home view features an urgent alert banner summarizing active inquiries requiring attention.
-   * Within the chat session transcript view (`/dashboard/chat-history/{session_id}`), merchants can click "Reply via WhatsApp" or submit a direct message as an authenticated representative via `POST /chat-sessions/{session_id}/reply`, which automatically updates the escalation record status to `resolved`.
+   * Within the chat session transcript view (`/dashboard/chat-history/{session_id}`), merchants can submit a direct message as an authenticated representative via `POST /chat-sessions/{session_id}/reply`, which automatically updates the escalation record status to `resolved`.
+   * The public chat client polls `GET /chat/{business_id}/sessions/{session_id}/messages` so the customer can see representative replies without leaving the chatbot. After resolution, future customer questions return to the normal AI retrieval pipeline; the AI answers confidently when it has verified context and escalates again only when needed.
 
 ### 3.5.4 Validation and Testing
 System correctness and stability were verified through automated test suites:

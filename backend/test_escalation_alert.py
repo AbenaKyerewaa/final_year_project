@@ -9,15 +9,15 @@ from app.database.session import SessionLocal
 from app.auth.models import User
 from app.businesses.models import Business
 from app.chat.models import ChatSession, ChatMessage, Escalation
+from app.products.models import Product
 from app.auth.security import hash_password
 from app.chat.routes import (
     handle_chat_message,
     ChatRequest,
-    save_customer_contact,
-    CustomerContactRequest,
     reply_to_chat_session,
     HumanReplyRequest,
-    get_business_escalations
+    get_business_escalations,
+    get_public_chat_session_messages
 )
 
 def test_escalation_and_alert_flow():
@@ -51,6 +51,19 @@ def test_escalation_and_alert_flow():
         db.add(business)
         db.commit()
         db.refresh(business)
+
+        product = Product(
+            business_id=business.id,
+            name="Cement Bag",
+            category="Construction Supplies",
+            description="50kg construction cement bag for building projects.",
+            price=95.00,
+            currency="GHS",
+            quantity=50,
+            availability_status="available"
+        )
+        db.add(product)
+        db.commit()
         print(f"[2/6] Created Business: {business.business_name} (ID: {business.id})")
 
         # 3. Customer sends query requesting human agent -> Escalation triggered
@@ -67,6 +80,8 @@ def test_escalation_and_alert_flow():
         )
         
         assert chat_res.escalated is True, "Expected chat_res.escalated to be True"
+        assert "phone" not in chat_res.answer.lower(), "Escalation reply should keep the customer in chat, not ask for a phone number."
+        assert "whatsapp number" not in chat_res.answer.lower(), "Escalation reply should not ask for a WhatsApp number."
         session_id = chat_res.session_id
         print(f"[3/6] Escalation triggered! Answer: \"{chat_res.answer}\" | Session ID: {session_id}")
 
@@ -81,24 +96,7 @@ def test_escalation_and_alert_flow():
         assert esc.status == "pending"
         print(f"[3/6] Escalation verified in database with status='{esc.status}'")
 
-        # 4. Customer submits WhatsApp/Phone number via in-chat contact card
-        contact_bg = BackgroundTasks()
-        contact_req = CustomerContactRequest(
-            session_id=session_id,
-            customer_phone="0501234567",
-            customer_name="Ama Osei"
-        )
-        contact_res = save_customer_contact(
-            business_id=business.id,
-            payload=contact_req,
-            background_tasks=contact_bg,
-            db=db
-        )
-        assert contact_res["customer_phone"] == "0501234567"
-        asyncio.run(contact_bg())
-        print(f"[4/6] Contact card submitted: {contact_res['customer_name']} - {contact_res['customer_phone']}")
-
-        # 5. Dashboard queries pending escalations
+        # 4. Dashboard queries pending escalations
         escalations = get_business_escalations(
             business_id=business.id,
             status="pending",
@@ -108,12 +106,11 @@ def test_escalation_and_alert_flow():
         assert len(escalations) >= 1
         matched = [e for e in escalations if e.session_id == session_id]
         assert len(matched) == 1
-        assert matched[0].customer_phone == "0501234567"
-        print(f"[5/6] Dashboard escalations query returned {len(escalations)} pending escalation(s) with phone attached")
+        print(f"[4/6] Dashboard escalations query returned {len(escalations)} pending escalation(s)")
 
-        # 6. Merchant sends human reply from Dashboard -> Auto-resolves escalation
+        # 5. Merchant sends human reply from Dashboard -> Auto-resolves escalation
         reply_req = HumanReplyRequest(
-            message="Hello Ama, this is Kwabena from Mensah Hardware. We have 50 bags available for immediate delivery!"
+            message="Hello, this is Kwabena from Mensah Hardware. We have 50 bags available for immediate delivery!"
         )
         reply_res = reply_to_chat_session(
             session_id=session_id,
@@ -126,7 +123,29 @@ def test_escalation_and_alert_flow():
         # Verify escalation status changed to 'resolved'
         db.refresh(esc)
         assert esc.status == "resolved", f"Expected escalation to be resolved, got {esc.status}"
-        print(f"[6/6] Merchant human reply sent! Escalation status auto-updated to: '{esc.status}'")
+
+        public_messages = get_public_chat_session_messages(
+            business_id=business.id,
+            session_id=session_id,
+            db=db
+        )
+        assert any(m.sender == "human" for m in public_messages), "Expected public session messages to include the human reply."
+        print(f"[5/6] Merchant human reply sent! Escalation status auto-updated to: '{esc.status}'")
+
+        # 6. AI resumes on the next answerable customer question
+        follow_up_res = handle_chat_message(
+            business_id=business.id,
+            payload=ChatRequest(
+                message="How much is the cement bag?",
+                channel="web",
+                session_id=session_id
+            ),
+            background_tasks=BackgroundTasks(),
+            db=db
+        )
+        assert follow_up_res.escalated is False, "Expected AI to resume and answer after the human escalation was resolved."
+        assert "95" in follow_up_res.answer, "Expected answer to include the product price."
+        print("[6/6] AI resumed successfully after the resolved human handoff.")
 
         print("\n" + "=" * 60)
         print("[SUCCESS] ALL SMART HYBRID ESCALATION TESTS PASSED!")

@@ -95,7 +95,7 @@ For local development and offline testing without API charges, use the mock fall
 
 ## Email Notifications
 
-EasyBiz AI alerts business owners when a customer asks for a human representative or when the assistant cannot answer confidently.
+EasyBiz AI alerts business owners when a customer asks for a human representative or when the assistant cannot answer confidently. The customer remains inside the chatbot, while the owner receives an email link to the dashboard transcript and can reply from the dashboard.
 
 Resend is the recommended provider for these transactional alerts because it uses a simple API key and provides delivery logs. Add these values to `backend/.env`:
 
@@ -127,6 +127,8 @@ SMTP_USE_TLS=true
 ```
 
 If neither Resend nor SMTP is configured, EasyBiz AI uses console simulation logging so local demos and tests still work without email credentials.
+
+After an owner replies from the dashboard, the public chat checks the same session for representative messages and displays the response to the customer. Once the escalation is resolved, future customer questions continue through the normal AI retrieval pipeline.
 
 ---
 

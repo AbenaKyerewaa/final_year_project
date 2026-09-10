@@ -26,10 +26,18 @@ interface ChatApiResponse {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://final-year-project-pa2z.onrender.com';
 
 interface Message {
-  sender: 'customer' | 'ai';
+  id?: string;
+  sender: 'customer' | 'ai' | 'human';
   text: string;
   timestamp: Date;
   escalated?: boolean;
+}
+
+interface PublicChatMessageResponse {
+  id: string;
+  sender: 'customer' | 'ai' | 'human';
+  message: string;
+  created_at: string;
 }
 
 function getErrorMessage(err: unknown, fallback: string): string {
@@ -49,13 +57,7 @@ export default function CustomerChat({ params }: PageProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Contact capture states for escalations
   const [hasEscalation, setHasEscalation] = useState(false);
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactSubmitted, setContactSubmitted] = useState(false);
-  const [submittingContact, setSubmittingContact] = useState(false);
-  const [contactError, setContactError] = useState<string | null>(null);
 
   // Voice recording states & refs (Disabled for now)
   /*
@@ -159,6 +161,46 @@ export default function CustomerChat({ params }: PageProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
 
+  useEffect(() => {
+    if (!sessionId || !hasEscalation) return;
+
+    async function fetchSessionMessages() {
+      try {
+        const res = await fetch(`${API_URL}/chat/${businessId}/sessions/${sessionId}/messages`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store'
+        });
+        if (!res.ok) return;
+
+        const data: PublicChatMessageResponse[] = await res.json();
+        const hasNewHumanReply = data.some(msg => msg.sender === 'human');
+        setMessages(prev => {
+          const seen = new Set(prev.map(msg => msg.id).filter(Boolean));
+          const incoming = data
+            .filter(msg => msg.sender === 'human' && !seen.has(msg.id))
+            .map(msg => ({
+              id: msg.id,
+              sender: msg.sender,
+              text: msg.message,
+              timestamp: new Date(msg.created_at)
+            }));
+
+          return incoming.length ? [...prev, ...incoming] : prev;
+        });
+        if (hasNewHumanReply) {
+          setHasEscalation(false);
+        }
+      } catch (err) {
+        console.error("Failed to check for representative replies:", err);
+      }
+    }
+
+    fetchSessionMessages();
+    const intervalId = window.setInterval(fetchSessionMessages, 7000);
+    return () => window.clearInterval(intervalId);
+  }, [businessId, sessionId, hasEscalation]);
+
   const handleSendMessage = async (textToSend: string) => {
     const trimmed = textToSend.trim();
     if (!trimmed || sending) return;
@@ -224,52 +266,6 @@ export default function CustomerChat({ params }: PageProps) {
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setSending(false);
-    }
-  };
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactPhone.trim() || !sessionId || submittingContact) return;
-    setSubmittingContact(true);
-    setContactError(null);
-    try {
-      const res = await fetch(`${API_URL}/chat/${businessId}/contact`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          customer_phone: contactPhone.trim(),
-          customer_name: contactName.trim() || null
-        })
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null) as { detail?: string } | null;
-        throw new Error(errorData?.detail || 'Failed to submit contact information.');
-      }
-
-      setContactSubmitted(true);
-      const nameSuffix = contactName.trim() ? ` (${contactName.trim()})` : '';
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: 'customer',
-          text: `My WhatsApp/contact number is: ${contactPhone.trim()}${nameSuffix}`,
-          timestamp: new Date()
-        },
-        {
-          sender: 'ai',
-          text: `Thank you! I have forwarded your contact number to the management team at ${business?.business_name || 'our business'}. A representative will follow up with you on WhatsApp or phone shortly.`,
-          timestamp: new Date()
-        }
-      ]);
-    } catch (err: unknown) {
-      console.error("Failed to submit contact:", err);
-      setContactError(getErrorMessage(err, "We could not submit your contact. Please try again."));
-    } finally {
-      setSubmittingContact(false);
     }
   };
 
@@ -517,13 +513,15 @@ export default function CustomerChat({ params }: PageProps) {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex flex-col max-w-[85%] md:max-w-[70%] ${msg.sender === 'customer' ? 'ml-auto items-end' : 'mr-auto items-start'
-              }`}
+              className={`flex flex-col max-w-[85%] md:max-w-[70%] ${msg.sender === 'customer' ? 'ml-auto items-end' : 'mr-auto items-start'
+                }`}
           >
             {/* Bubble */}
             <div
               className={`rounded-2xl px-4 py-3 text-sm shadow-md leading-relaxed whitespace-pre-wrap ${msg.sender === 'customer'
                 ? 'bg-blue-600 text-white rounded-br-none'
+                : msg.sender === 'human'
+                ? 'bg-emerald-700 border border-emerald-600 text-white rounded-bl-none'
                 : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
                 }`}
             >
@@ -558,45 +556,17 @@ export default function CustomerChat({ params }: PageProps) {
           </div>
         )}
 
-        {/* Contact Capture Card for Escalated Inquiries */}
-        {hasEscalation && !contactSubmitted && (
+        {hasEscalation && (
           <div className="max-w-md mr-auto p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-black backdrop-blur-md shadow-2xl flex flex-col gap-2.5 animate-fadeIn">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
               <span className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
-                Management Notification
+                Owner Notified
               </span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Our team has been alerted! Leave your WhatsApp or phone number so our team can follow up with you directly:
+              The business owner has been alerted and can reply directly in this chat. Keep this page open or check back here shortly.
             </p>
-            <form onSubmit={handleContactSubmit} className="flex flex-col sm:flex-row gap-2 mt-1">
-              <input
-                type="text"
-                placeholder="Your Name (optional)"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                className="w-full sm:w-1/3 px-3 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-              />
-              <input
-                type="tel"
-                placeholder="e.g. 024 123 4567 (WhatsApp)"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                required
-              />
-              <button
-                type="submit"
-                disabled={submittingContact || !contactPhone.trim()}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white transition shrink-0 shadow-md cursor-pointer"
-              >
-                {submittingContact ? "Sending..." : "Submit Contact"}
-              </button>
-            </form>
-            {contactError && (
-              <p className="text-[11px] text-rose-300 mt-1">{contactError}</p>
-            )}
           </div>
         )}
 

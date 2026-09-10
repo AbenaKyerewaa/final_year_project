@@ -107,7 +107,7 @@ This disintermediation directly undermines the primary purpose of deploying an A
 
 ### 2.6.2 Tiered Asynchronous Escalation and Lead Capture
 To resolve the bypass trap without stranding the customer, contemporary customer support architectures employ a **tiered, asynchronous escalation framework**:
-1. **In-Chat Lead Capture**: Rather than passively refusing to answer or exposing raw private contact numbers, the automated assistant explicitly informs the customer that their inquiry has been escalated to management and prompts them for their telephone/WhatsApp number directly within the conversational interface.
+1. **In-Platform Handoff**: Rather than passively refusing to answer or exposing raw private contact numbers, the automated assistant explicitly informs the customer that their inquiry has been escalated to management and keeps the customer inside the same chat session for a representative response.
 2. **Out-of-Band Real-Time Notifications**: Small business owners do not maintain constant surveillance over administrative web portals. To eliminate lead response latency, the backend triggers asynchronous out-of-band notification events (such as formatted transactional emails or SMS alerts) directly to the merchant's personal device, encapsulating the customer's query, contact details, and session deep link.
 3. **One-Click Merchant Resolution**: Upon receiving the notification, the merchant can review the conversation transcript and either execute a one-click response via official messaging channels (e.g., deep linking into WhatsApp with pre-filled context) or reply through the web console as an authenticated representative.
 

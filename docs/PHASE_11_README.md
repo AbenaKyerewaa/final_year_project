@@ -29,7 +29,8 @@ This document tracks the deliverables, schema mappings, security rules, and veri
 4.  **Resend Email Alert Integration:**
     *   Sends transactional owner alerts through Resend when a customer requests human support or the AI confidence threshold triggers a fallback.
     *   Falls back to SMTP if Resend is not configured, and to console simulation during local development.
-    *   Sends a second updated alert after the customer submits their name and phone/WhatsApp number through the contact capture card.
+    *   Keeps the customer inside the same chat session instead of requesting their phone/WhatsApp number.
+    *   The public chat polls for representative replies and displays them to the customer once the owner responds from the dashboard.
 
 5.  **Backend History & Handoff Management APIs:**
     *   Implemented endpoints:

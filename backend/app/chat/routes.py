@@ -23,7 +23,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 HANDOFF_KEYWORDS = ["human", "agent", "staff", "call me", "i want to talk to someone", "manager"]
-SAFE_FALLBACK = "I don't have enough details to answer that accurately, but I've alerted our team! Please leave your WhatsApp or phone number so we can follow up directly, or let us know how we can help."
+SAFE_FALLBACK = "I don't have enough verified information to answer that accurately, so I've notified the business owner. Please keep this chat open or check back here shortly for a response."
 
 # --- Pydantic Schemas ---
 
@@ -40,6 +40,15 @@ class ChatResponse(BaseModel):
     confidence_score: float
     sources: List[dict]
     escalated: bool
+
+class PublicChatMessageResponse(BaseModel):
+    id: uuid.UUID
+    sender: str
+    message: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 # class VoiceChatResponse(BaseModel):
 #     session_id: uuid.UUID
@@ -568,7 +577,7 @@ def process_rag_chat(
         db.add(escalation)
         
         # Save AI handoff response to history
-        handoff_reply = "I have notified our management team. Please share your phone or WhatsApp number so a representative can reach you directly."
+        handoff_reply = "I've notified the business owner. Please keep this chat open or check back here shortly, and a representative can respond here."
         ai_msg_record = ChatMessage(
             session_id=session.id,
             sender="ai",
@@ -978,9 +987,31 @@ def handle_chat_message(
     )
 
 
+@router.get("/{business_id}/sessions/{session_id}/messages", response_model=List[PublicChatMessageResponse])
+def get_public_chat_session_messages(
+    business_id: uuid.UUID,
+    session_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """Return messages for a public chat session so customers can receive human replies."""
+    session = db.query(ChatSession).filter(
+        ChatSession.id == session_id,
+        ChatSession.business_id == business_id
+    ).first()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat session not found."
+        )
+
+    return db.query(ChatMessage).filter(
+        ChatMessage.session_id == session.id
+    ).order_by(ChatMessage.created_at.asc()).all()
+
+
 class CustomerContactRequest(BaseModel):
     session_id: uuid.UUID
-    customer_phone: str = Field(..., min_length=5, description="Customer's phone or WhatsApp number")
+    customer_phone: str = Field(..., min_length=5, description="Optional legacy customer phone or WhatsApp number")
     customer_name: Optional[str] = Field(None, description="Customer's name")
 
 
@@ -991,7 +1022,7 @@ def save_customer_contact(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """Allows customer on chat widget to submit their phone/WhatsApp number for follow-up."""
+    """Legacy endpoint for saving optional customer contact details when provided by an external channel."""
     session = db.query(ChatSession).filter(
         ChatSession.id == payload.session_id,
         ChatSession.business_id == business_id

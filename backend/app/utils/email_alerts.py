@@ -44,7 +44,9 @@ def send_escalation_alert_email(
     Supports Resend as the recommended provider, SMTP as a fallback,
     and console simulation logging when no email provider is configured.
     """
-    frontend_base_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    frontend_base_url = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")
+    if frontend_base_url and not frontend_base_url.startswith(("http://", "https://")):
+        frontend_base_url = f"https://{frontend_base_url.lstrip('/')}"
     dashboard_session_url = f"{frontend_base_url}/dashboard/chat-history/{session_id}"
     wa_link = format_whatsapp_link(customer_phone, business_name)
     display_customer = customer_name or "Anonymous Customer"
