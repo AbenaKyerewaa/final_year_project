@@ -84,16 +84,6 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
     }
   };
 
-  const formatWhatsAppUrl = (phone?: string) => {
-    if (!phone) return '#';
-    let clean = phone.replace(/[^0-9]/g, '');
-    if (clean.length === 10 && clean.startsWith('0')) {
-      clean = '233' + clean.substring(1);
-    }
-    const text = encodeURIComponent(`Hello! This is regarding your recent inquiry on our business chat assistant.`);
-    return `https://wa.me/${clean}?text=${text}`;
-  };
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -174,16 +164,6 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {session.customer_phone && (
-              <a
-                href={formatWhatsAppUrl(session.customer_phone)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase rounded transition inline-flex items-center gap-1.5 shadow-md"
-              >
-                <span>💬 Reply via WhatsApp</span>
-              </a>
-            )}
             <button
               onClick={handleResolve}
               disabled={resolving}

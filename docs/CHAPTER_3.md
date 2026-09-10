@@ -130,7 +130,7 @@ To resolve the Chatbot Bypass Dilemma while ensuring high-touch customer service
    * Exact customer inquiry text snippet and escalation trigger reason.
    * A direct deep link to the merchant administrative transcript (`/dashboard/chat-history/{session_id}`), where the owner can respond inside the same session.
    * A direct deep link to the merchant administrative transcript (`/dashboard/chat-history/{session_id}`).
-   * A pre-formatted, one-click WhatsApp action link (`https://wa.me/{clean_phone}?text=...`) enabling the merchant to open WhatsApp directly from their smartphone and initiate immediate communication with the customer.
+   * A public session message polling endpoint (`GET /chat/{business_id}/sessions/{session_id}/messages`) enabling the customer to receive the representative's reply inside the same chatbot session.
 3. **Dashboard Real-Time Indicators & One-Click Resolution**:
    * The administrative navigation sidebar polls for pending escalations, displaying an amber/red pulsing counter next to the Chat History link.
    * The dashboard home view features an urgent alert banner summarizing active inquiries requiring attention.
@@ -144,7 +144,7 @@ System correctness and stability were verified through automated test suites:
 * `test_products_services.py`: Assesses product and service creation, editing, and stock toggling.
 * `test_faqs.py`: Tests single and bulk FAQ creation and CSV parsing.
 * `test_phase14.py`: Tests the WhatsApp webhook endpoint simulator, payload verification, and inbound messaging.
-* `test_escalation_alert.py`: Verifies end-to-end escalation triggering, asynchronous email notification generation, in-chat lead capture, dashboard pending query filtering, and merchant human reply auto-resolution.
+* `test_escalation_alert.py`: Verifies end-to-end escalation triggering, asynchronous email notification generation, dashboard pending query filtering, public retrieval of representative replies, merchant human reply auto-resolution, and AI resumption after resolved handoff.
 * `test_manual_flows.py`: Executes end-to-end user workflows from merchant onboarding to customer chat and escalation.
 
 ### 3.5.5 Evaluation of Models

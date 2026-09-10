@@ -170,7 +170,7 @@ export async function updateEscalationStatus(escalationId: string, status: strin
 }
 
 /**
- * Allows a customer to submit their contact information (phone/WhatsApp) on the chat widget.
+ * Legacy helper for saving optional customer contact details from external channels.
  */
 export async function saveCustomerContact(
   businessId: string,
@@ -265,4 +265,3 @@ export async function sendVoiceMessage(
   return response.json();
 }
 */
-
