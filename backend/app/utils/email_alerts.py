@@ -8,23 +8,6 @@ import uuid
 
 logger = logging.getLogger("easybiz.alerts")
 
-def format_whatsapp_link(phone: Optional[str], business_name: str) -> Optional[str]:
-    """Formats a clean WhatsApp deep link (wa.me) with pre-filled context."""
-    if not phone:
-        return None
-    # Strip any non-numeric characters except leading +
-    clean_digits = "".join(c for c in phone if c.isdigit())
-    if not clean_digits:
-        return None
-    # If standard 10-digit Ghanaian number starting with 0, convert to international format (233)
-    if len(clean_digits) == 10 and clean_digits.startswith("0"):
-        clean_digits = "233" + clean_digits[1:]
-    
-    encoded_text = f"Hello! This is {business_name}. I saw your message on our chat assistant regarding your inquiry."
-    import urllib.parse
-    return f"https://wa.me/{clean_digits}?text={urllib.parse.quote(encoded_text)}"
-
-
 def send_escalation_alert_email(
     owner_email: str,
     owner_name: str,
@@ -44,11 +27,6 @@ def send_escalation_alert_email(
     Supports Resend as the recommended provider, SMTP as a fallback,
     and console simulation logging when no email provider is configured.
     """
-    frontend_base_url = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")
-    if frontend_base_url and not frontend_base_url.startswith(("http://", "https://")):
-        frontend_base_url = f"https://{frontend_base_url.lstrip('/')}"
-    dashboard_session_url = f"{frontend_base_url}/dashboard/chat-history/{session_id}"
-    wa_link = format_whatsapp_link(customer_phone, business_name)
     display_customer = customer_name or "Anonymous Customer"
     display_phone = customer_phone or "Not provided yet"
     reason_label = reason or "Low AI retrieval confidence or human assistance requested"
@@ -73,13 +51,10 @@ Customer's Message:
 "{customer_message}"
 
 QUICK ACTIONS:
-1. Open Conversation in Dashboard:
-   {dashboard_session_url}
-"""
-    if wa_link:
-        text_content += f"""
-2. Reply directly to Customer on WhatsApp:
-   {wa_link}
+1. Log in to your EasyBiz AI dashboard.
+2. Open the business profile named "{business_name}".
+3. Go to Chat History and open the pending conversation that needs attention.
+4. Reply to the customer directly inside the chat dashboard.
 """
 
     text_content += """
@@ -166,31 +141,24 @@ EasyBiz AI - Automated Merchant Alerts
       color: #e2e8f0;
       font-weight: 500;
     }}
-    .button-group {{
-      margin-top: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    .action-box {{
+      background-color: #172033;
+      border: 1px solid #2f3b52;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 24px;
     }}
-    .btn {{
-      display: inline-block;
-      text-align: center;
-      padding: 12px 24px;
-      border-radius: 8px;
+    .action-box h2 {{
+      color: #ffffff;
+      font-size: 16px;
+      margin: 0 0 12px 0;
+    }}
+    .action-box ol {{
+      color: #cbd5e1;
       font-size: 14px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: all 0.2s;
-    }}
-    .btn-primary {{
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      color: #ffffff !important;
-      border: 1px solid #3b82f6;
-    }}
-    .btn-whatsapp {{
-      background-color: #10b981;
-      color: #ffffff !important;
-      border: 1px solid #059669;
+      line-height: 1.7;
+      margin: 0;
+      padding-left: 20px;
     }}
     .footer {{
       margin-top: 32px;
@@ -231,19 +199,14 @@ EasyBiz AI - Automated Merchant Alerts
       </tr>
     </table>
 
-    <div class="button-group">
-      <a href="{dashboard_session_url}" class="btn btn-primary" target="_blank">
-        Open Chat in Dashboard &rarr;
-      </a>
-      """
-    if wa_link:
-        html_content += f"""
-      <a href="{wa_link}" class="btn btn-whatsapp" target="_blank" style="margin-top: 10px;">
-        Reply directly on WhatsApp ({display_phone})
-      </a>
-      """
-
-    html_content += f"""
+    <div class="action-box">
+      <h2>What to do next</h2>
+      <ol>
+        <li>Log in to your EasyBiz AI dashboard.</li>
+        <li>Open the business profile named <strong>{business_name}</strong>.</li>
+        <li>Go to <strong>Chat History</strong> and open the pending conversation that needs attention.</li>
+        <li>Reply to the customer directly inside the chat dashboard.</li>
+      </ol>
     </div>
 
     <div class="footer">
@@ -315,8 +278,6 @@ EasyBiz AI - Automated Merchant Alerts
     print(f"Business:         {business_name}")
     print(f"Customer Contact: {display_customer} ({display_phone})")
     print(f"Inquiry Snippet:  \"{customer_message}\"")
-    print(f"Dashboard Link:   {dashboard_session_url}")
-    if wa_link:
-        print(f"WhatsApp Action:  {wa_link}")
+    print(f"Next Step:        Log in, open {business_name}, and reply from Chat History.")
     print("=" * 75 + "\n")
     return True
