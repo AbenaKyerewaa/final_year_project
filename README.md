@@ -93,6 +93,35 @@ For local development and offline testing without API charges, use the mock fall
 
 ---
 
+## Email Notifications
+
+EasyBiz AI alerts business owners when a customer asks for a human representative or when the assistant cannot answer confidently.
+
+Resend is the recommended provider for these transactional alerts because it uses a simple API key and provides delivery logs. Add these values to `backend/.env`:
+
+```ini
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=alerts@yourdomain.com
+FRONTEND_URL=http://localhost:3000
+```
+
+For production deliverability, verify your sending domain in Resend before using a custom `RESEND_FROM_EMAIL`.
+
+SMTP is still supported as an optional fallback when `RESEND_API_KEY` is not set:
+
+```ini
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_USE_TLS=true
+```
+
+If neither Resend nor SMTP is configured, EasyBiz AI uses console simulation logging so local demos and tests still work without email credentials.
+
+---
+
 ## 🔍 Understanding the RAG Pipeline
 
 EasyBiz AI employs **Retrieval-Augmented Generation (RAG)** to guarantee factual responses:

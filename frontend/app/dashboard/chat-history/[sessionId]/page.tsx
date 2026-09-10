@@ -45,35 +45,13 @@ export default function ChatSessionDetailPage({ params }: PageProps) {
     if (!session || !token || resolving) return;
     setResolving(true);
     try {
-      // Find latest escalation to resolve. We can find the status on details
-      // Wait, we need an escalation ID to call updateEscalationStatus.
-      // Let's call updateEscalationStatus with the session's active escalation.
-      // Wait, the API PUT /escalations/{escalation_id} expects escalation_id.
-      // Let's modify the API backend, or let's get the escalations of the business and match this session.
-      // Wait, let's look at the EscalationResponse we get when loading.
-      // But wait! Does getChatSessionDetails return the escalation list or active escalation ID?
-      // Let's check routes.py:
-      // it returns escalation_status, but does it return escalation_id?
-      // Ah! In routes.py, let's check what fields we returned on ChatSessionDetail:
-      // id, business_id, customer_name, customer_phone, channel, created_at, escalated, escalation_status, messages
-      // Oh! It does not return the escalation_id!
-      // Wait, how can we resolve the escalation without the escalation_id?
-      // We can search the business escalations list to find the one associated with this session_id!
-      // Let's fetch the business escalations list and match this session_id to find the pending escalation's ID!
-      // Let's do that! That is extremely smart and avoids modifying the backend.
-      // Let's write the fetch in React:
-      const { getBusinessEscalations } = await import('@/services/chat');
-      const escList = await getBusinessEscalations(session.business_id, token);
-      const activeEsc = escList.find(e => e.session_id === session.id && e.status === 'pending');
-      
-      if (!activeEsc) {
+      if (!session.escalation_id) {
         throw new Error("No active pending escalation found for this session.");
       }
 
-      await updateEscalationStatus(activeEsc.id, 'resolved', token);
+      await updateEscalationStatus(session.escalation_id, 'resolved', token);
       
-      // Update local state
-      setSession(prev => prev ? { ...prev, escalated: false, escalation_status: 'resolved' } : null);
+      setSession(prev => prev ? { ...prev, escalated: false, escalation_status: 'resolved', escalation_id: undefined } : null);
     } catch (err: any) {
       console.error(err);
       alert(err.message || "Failed to resolve escalation.");

@@ -32,6 +32,10 @@ interface Message {
   escalated?: boolean;
 }
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
 export default function CustomerChat({ params }: PageProps) {
   const unwrappedParams = use(params);
   const businessId = unwrappedParams.businessId;
@@ -51,6 +55,7 @@ export default function CustomerChat({ params }: PageProps) {
   const [contactName, setContactName] = useState('');
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [submittingContact, setSubmittingContact] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   // Voice recording states & refs (Disabled for now)
   /*
@@ -139,9 +144,9 @@ export default function CustomerChat({ params }: PageProps) {
             timestamp: new Date()
           }
         ]);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error loading business:", err);
-        setError(err.message || "Could not retrieve the business profile. Please verify the URL or try again later.");
+        setError(getErrorMessage(err, "Could not retrieve the business profile. Please verify the URL or try again later."));
       } finally {
         setLoadingBusiness(false);
       }
@@ -209,7 +214,7 @@ export default function CustomerChat({ params }: PageProps) {
       if (response.escalated) {
         setHasEscalation(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error sending message:", err);
       const errorMsg: Message = {
         sender: 'ai',
@@ -226,6 +231,7 @@ export default function CustomerChat({ params }: PageProps) {
     e.preventDefault();
     if (!contactPhone.trim() || !sessionId || submittingContact) return;
     setSubmittingContact(true);
+    setContactError(null);
     try {
       const res = await fetch(`${API_URL}/chat/${businessId}/contact`, {
         method: 'POST',
@@ -239,25 +245,29 @@ export default function CustomerChat({ params }: PageProps) {
           customer_name: contactName.trim() || null
         })
       });
-      if (res.ok) {
-        setContactSubmitted(true);
-        const nameSuffix = contactName.trim() ? ` (${contactName.trim()})` : '';
-        setMessages(prev => [
-          ...prev,
-          {
-            sender: 'customer',
-            text: `My WhatsApp/contact number is: ${contactPhone.trim()}${nameSuffix}`,
-            timestamp: new Date()
-          },
-          {
-            sender: 'ai',
-            text: `Thank you! I have forwarded your contact number to the management team at ${business?.business_name || 'our business'}. A representative will follow up with you on WhatsApp or phone shortly.`,
-            timestamp: new Date()
-          }
-        ]);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null) as { detail?: string } | null;
+        throw new Error(errorData?.detail || 'Failed to submit contact information.');
       }
-    } catch (err) {
+
+      setContactSubmitted(true);
+      const nameSuffix = contactName.trim() ? ` (${contactName.trim()})` : '';
+      setMessages(prev => [
+        ...prev,
+        {
+          sender: 'customer',
+          text: `My WhatsApp/contact number is: ${contactPhone.trim()}${nameSuffix}`,
+          timestamp: new Date()
+        },
+        {
+          sender: 'ai',
+          text: `Thank you! I have forwarded your contact number to the management team at ${business?.business_name || 'our business'}. A representative will follow up with you on WhatsApp or phone shortly.`,
+          timestamp: new Date()
+        }
+      ]);
+    } catch (err: unknown) {
       console.error("Failed to submit contact:", err);
+      setContactError(getErrorMessage(err, "We could not submit your contact. Please try again."));
     } finally {
       setSubmittingContact(false);
     }
@@ -584,6 +594,9 @@ export default function CustomerChat({ params }: PageProps) {
                 {submittingContact ? "Sending..." : "Submit Contact"}
               </button>
             </form>
+            {contactError && (
+              <p className="text-[11px] text-rose-300 mt-1">{contactError}</p>
+            )}
           </div>
         )}
 

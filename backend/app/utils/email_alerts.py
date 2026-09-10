@@ -41,8 +41,8 @@ def send_escalation_alert_email(
     when the AI assistant encounters an inquiry it cannot answer with high confidence
     or when the customer requests a human representative.
     
-    Supports live SMTP dispatch (Gmail, SendGrid, Mailgun, AWS SES, etc.)
-    with automatic fallback to console simulation logging if SMTP is unconfigured.
+    Supports Resend as the recommended provider, SMTP as a fallback,
+    and console simulation logging when no email provider is configured.
     """
     frontend_base_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
     dashboard_session_url = f"{frontend_base_url}/dashboard/chat-history/{session_id}"
@@ -237,7 +237,7 @@ EasyBiz AI - Automated Merchant Alerts
     if wa_link:
         html_content += f"""
       <a href="{wa_link}" class="btn btn-whatsapp" target="_blank" style="margin-top: 10px;">
-        💬 Reply directly on WhatsApp ({display_phone})
+        Reply directly on WhatsApp ({display_phone})
       </a>
       """
 
@@ -251,6 +251,26 @@ EasyBiz AI - Automated Merchant Alerts
   </div>
 </body>
 </html>"""
+
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    resend_from = os.getenv("RESEND_FROM_EMAIL") or os.getenv("SMTP_FROM_EMAIL") or "alerts@easybiz.ai"
+
+    if resend_api_key:
+        try:
+            import resend
+
+            resend.api_key = resend_api_key
+            resend.Emails.send({
+                "from": resend_from,
+                "to": owner_email,
+                "subject": subject,
+                "html": html_content,
+                "text": text_content,
+            })
+            logger.info(f"[Escalation Alert] Resend email dispatched successfully to {owner_email} for business {business_name}")
+            return True
+        except Exception as e:
+            logger.error(f"[Escalation Alert] Failed to dispatch email via Resend: {e}. Trying SMTP fallback.")
 
     # Check for SMTP configuration
     smtp_host = os.getenv("SMTP_HOST")

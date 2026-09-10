@@ -31,3 +31,5 @@ faiss-cpu==1.14.3
 # Google Gemini SDK
 google-genai>=0.1.1
 
+# Transactional email notifications
+resend>=2.4.0

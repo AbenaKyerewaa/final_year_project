@@ -1159,6 +1159,7 @@ class ChatSessionDetail(BaseModel):
     created_at: datetime
     escalated: bool
     escalation_status: Optional[str] = None
+    escalation_id: Optional[uuid.UUID] = None
     messages: List[ChatMessageResponse]
 
     class Config:
@@ -1288,6 +1289,7 @@ def get_chat_session_details(
         created_at=session.created_at,
         escalated=escalated,
         escalation_status=escalation_status,
+        escalation_id=escalation.id if escalation and escalation.status == "pending" else None,
         messages=messages
     )
 

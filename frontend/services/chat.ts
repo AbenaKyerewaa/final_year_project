@@ -66,6 +66,7 @@ export interface ChatSessionDetail {
   created_at: string;
   escalated: boolean;
   escalation_status?: string;
+  escalation_id?: string;
   messages: ChatMessageResponse[];
 }
 
@@ -264,5 +265,4 @@ export async function sendVoiceMessage(
   return response.json();
 }
 */
-
 
