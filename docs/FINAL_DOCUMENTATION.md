@@ -246,7 +246,7 @@ To achieve the global objective, the study will address the following specific o
 2. Build a high-performance hybrid retrieval pipeline that seamlessly coordinates deterministic structured SQL lookups with local FAISS vector indexing, enforcing strict tenant data isolation.
 3. Design and implement a conversational query condensation module to rewrite contextual follow-up queries into self-contained search prompts.
 4. Program a context-bounded prompt engineering abstraction that restricts the LLM to retrieved context and enforces domain safety policies.
-5. Implement a dual-layer confidence score thresholding mechanism ($\tau=0.50$) to trigger low-confidence fallback responses and create real-time human escalation tickets.
+5. Implement a dual-layer confidence score thresholding mechanism ($\tau=0.50$) to trigger low-confidence fallback responses, capture customer contact details, and create real-time human escalation tickets with Resend email alerts and WhatsApp reply links.
 6. Build a modern, responsive user dashboard in Next.js for merchants, alongside an interactive customer web chat widget and a WhatsApp integration simulator.
 7. Evaluate the hybrid RAG pipeline using empirical evaluation metrics (response accuracy, retrieval score, latency, hallucination rate, and handoff correctness).
 
@@ -533,12 +533,20 @@ The merchant dashboard provides a zero-code administrative portal developed with
 * **Inventory Management Panels**: Full CRUD interfaces for managing products (name, category, price in GHS, stock availability status, warranty period, specifications) and services (service name, description, duration, pricing).
 * **FAQ Management Panel**: An interface allowing owners to manually seed custom question-and-answer pairs or import them in bulk via CSV uploads.
 * **Document Upload Panel**: Supports uploading unstructured text (.txt) and PDF documents. The backend parses the uploaded files, extracts clean text, segments it using a sliding window chunker (300–500 words, 10% overlap), generates dense embeddings, and updates the business's FAISS index.
-* **Conversational Logs & Escalations Viewer**: Displays active customer chat history across sessions and flags inquiries escalated to human representatives, showing the exact question that triggered the fallback.
+* **Conversational Logs & Escalations Viewer**: Displays active customer chat history across sessions and flags inquiries escalated to human representatives, showing the exact question that triggered the fallback and any submitted customer phone/WhatsApp contact.
 * **WhatsApp Integration Page**: A dedicated management view (`frontend/app/dashboard/whatsapp/page.tsx`) that allows merchants to simulate WhatsApp account connection via a visual QR code flow, view the assigned webhook URL and verify token, and test conversations in a live simulated WhatsApp interface.
 
 ### 4.1.2 The Customer Interfaces
-* **Embeddable Public Web Chat**: A lightweight, floating chat interface (`frontend/app/chat/[businessId]/page.tsx`) that can be integrated into merchant websites. It connects directly to the FastAPI backend public endpoint (`/api/v1/chat/public/{business_id}`), creating isolated chat sessions and delivering context-grounded responses in real time.
+* **Embeddable Public Web Chat**: A lightweight, floating chat interface (`frontend/app/chat/[businessId]/page.tsx`) that can be integrated into merchant websites. It connects directly to the FastAPI backend public endpoint (`/chat/{business_id}`), creating isolated chat sessions and delivering context-grounded responses in real time. When escalation is triggered, the widget displays a contact capture card for the customer's name and phone/WhatsApp number.
 * **WhatsApp Chat Simulator**: To evaluate the system's integration with messaging networks, a custom web-based simulator was developed. It mirrors the WhatsApp mobile user interface (green incoming/outgoing message bubbles, read receipts, and contact headers) and simulates Meta’s WhatsApp Cloud API webhook payloads, calling the backend API to retrieve responses and simulating human representative escalations.
+
+---
+
+### 4.1.3 Smart Hybrid Escalation and Resend Email Alert Verification
+To verify the out-of-band notification and escalation pipeline in production-like conditions, integration testing was executed using `backend/test_escalation_alert.py`:
+* **Resend Email Alert Dispatch**: When a customer inquiry triggers low retrieval confidence or explicitly requests a human representative, the backend enqueues an asynchronous notification via FastAPI `BackgroundTasks`. The notification worker dispatches a structured, responsive HTML email to the merchant owner's registered address using Resend as the primary transactional email provider. SMTP remains available as a fallback, and console simulation logging supports local demos without credentials.
+* **In-Chat Contact Capture Flow**: Upon escalation, the web chat widget displays an embedded contact capture card. Submitting a phone or WhatsApp number triggers `POST /chat/{business_id}/contact`, persists the contact to the session, and dispatches an updated owner alert containing the customer's submitted name and phone/WhatsApp number.
+* **Dashboard Indicators and One-Click WhatsApp Reply**: The merchant dashboard displays real-time pending counters and an urgent home banner. Within the session detail view, merchants can initiate a one-click conversation on WhatsApp (`https://wa.me/233...`) or submit a direct reply as an authenticated representative via `POST /chat-sessions/{session_id}/reply`, which auto-resolves the escalation ticket.
 
 ---
 
@@ -630,7 +638,7 @@ This study designed, implemented, and evaluated **EasyBiz AI**, a context-bounde
 1. **Factually Grounded Responses**: By utilizing Retrieval-Augmented Generation with strict system prompt grounding, the platform successfully eliminated AI hallucinations (achieving a 0.00% hallucination rate during automated evaluation). The dual-layer confidence thresholding mechanism ($\tau=0.50$) reliably prevented the Large Language Model (LLM) from speculating beyond the merchant's verified knowledge base.
 2. **Hybrid Retrieval Precision**: Combining deterministic structured SQL lookups with dense FAISS vector search significantly improved response precision for catalog queries. Direct entity and category requests ("What do you sell?", "How much is X?") are resolved instantaneously with 100% factual accuracy, while semantic search effectively parses nuanced customer inquiries and document knowledge.
 3. **Robust Multi-Tenancy Isolation**: The architectural design of maintaining isolated on-disk FAISS index directories (`vector_indices/{business_id}/`) proved to be an effective, lightweight, and secure mechanism for multi-tenant data segregation, preventing cross-tenant data contamination.
-4. **Reliable Handling of Edge Cases and Escalations**: The system exhibited high reliability in identifying out-of-domain inquiries and explicit customer handoff requests, achieving a 100.00% human-escalation correctness rate in automated benchmarking.
+4. **Reliable Handling of Edge Cases and Escalations**: The system exhibited high reliability in identifying out-of-domain inquiries and explicit customer handoff requests, achieving a 100.00% human-escalation correctness rate in automated benchmarking. The implementation also supports Resend transactional email alerts, SMTP fallback, customer contact capture, updated owner alerts containing the customer's phone/WhatsApp number, and one-click WhatsApp follow-up links.
 5. **Seamless Conversational Commerce Integration**: The dual-interface implementation—comprising an embeddable public web chat widget and an interactive WhatsApp webhook simulator—demonstrated that automated conversational AI can be integrated into the primary communication channels favored by Ghanaian consumers.
 
 ---
@@ -638,12 +646,12 @@ This study designed, implemented, and evaluated **EasyBiz AI**, a context-bounde
 ## 5.2 Conclusion
 The digital transformation of Ghanaian SMEs has created a dynamic retail environment where conversational commerce on platforms such as WhatsApp and social media dominates customer transactions. However, the manual overhead of handling repetitive inquiries, combined with delayed responses during off-hours, severely constrains business revenue and customer retention.
 
-This study demonstrates that Generative AI can be applied to solve these challenges without requiring expensive infrastructure, machine learning engineering teams, or costly model fine-tuning. By leveraging hybrid RAG, commercial LLM APIs, and open-source vector search libraries, **EasyBiz AI** provides small business owners with an accessible, zero-code dashboard to deploy verified, 24/7 conversational assistants.
+This study demonstrates that Generative AI can be applied to solve these challenges without requiring expensive infrastructure, machine learning engineering teams, or costly model fine-tuning. By leveraging hybrid RAG, commercial LLM APIs, open-source vector search libraries, and asynchronous transactional email notifications, **EasyBiz AI** provides small business owners with an accessible, zero-code dashboard to deploy verified, 24/7 conversational assistants.
 
 The successful implementation and evaluation of the system prove that:
 * Conversational AI can be bounded to factual data, mitigating the risks of reputation damage and pricing disputes.
 * Small business owners can curate their digital catalog and documents without technical knowledge.
-* Customer interactions across web chat and WhatsApp can be automated securely while preserving human oversight through automated escalation handoffs.
+* Customer interactions across web chat and WhatsApp can be automated securely while preserving human oversight through automated escalation handoffs, Resend email alerts, and WhatsApp follow-up links.
 
 In conclusion, EasyBiz AI represents a practical, scalable, and economically viable software solution that democratizes generative AI for micro-enterprises in developing economies, driving conversational sales and operational efficiency.
 

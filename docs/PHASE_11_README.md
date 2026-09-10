@@ -17,14 +17,21 @@ This document tracks the deliverables, schema mappings, security rules, and veri
     *   Lists conversation logs categorized by Customer Name/Anonymous, Channel (web, test, WhatsApp), Date/Time, and Handoff Escalation status.
     *   Provides tabs separating general sessions and active pending handoff escalations.
     *   Enables owners to resolve active escalations with a single click.
+    *   Pending handoffs are also surfaced on the dashboard home banner for quick visibility.
 
 3.  **Conversation Transcript Viewer:**
     *   Built session detail route `/dashboard/chat-history/[sessionId]`.
     *   Visualizes full customer-to-AI dialog transcripts with sender bubbles.
     *   Displays uvicorn similarity logs and database chunk source titles for auditing AI behavior.
     *   Allows resolving escalations directly from the detail transcript view.
+    *   Uses the active `escalation_id` returned by the backend so the frontend can resolve the exact pending escalation without fetching the entire escalation list.
 
-4.  **Backend History & Handoff Management APIs:**
+4.  **Resend Email Alert Integration:**
+    *   Sends transactional owner alerts through Resend when a customer requests human support or the AI confidence threshold triggers a fallback.
+    *   Falls back to SMTP if Resend is not configured, and to console simulation during local development.
+    *   Sends a second updated alert after the customer submits their name and phone/WhatsApp number through the contact capture card.
+
+5.  **Backend History & Handoff Management APIs:**
     *   Implemented endpoints:
         *   `GET /businesses/{business_id}/chat-sessions` — Lists history summaries.
         *   `GET /chat-sessions/{session_id}` — Lists messages transcript.
@@ -67,6 +74,7 @@ This document tracks the deliverables, schema mappings, security rules, and veri
       "created_at": "2026-06-25T01:15:45",
       "escalated": true,
       "escalation_status": "pending",
+      "escalation_id": "f656e2ae-427b-4c9a-8690-6df7e9fd5fb0",
       "messages": [
         {
           "id": "1a2b3c4d-...",

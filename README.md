@@ -107,6 +107,14 @@ FRONTEND_URL=http://localhost:3000
 
 For production deliverability, verify your sending domain in Resend before using a custom `RESEND_FROM_EMAIL`.
 
+For the hosted deployment used in this project, set `FRONTEND_URL` on Render to the live Vercel dashboard URL:
+
+```ini
+FRONTEND_URL=https://final-year-project-olive-one.vercel.app
+```
+
+During testing, `RESEND_FROM_EMAIL=onboarding@resend.dev` can be used, but Resend's test sender is limited to sending to the email address associated with the Resend account. For wider recipient support, verify a custom domain in Resend and use a sender such as `alerts@yourdomain.com`.
+
 SMTP is still supported as an optional fallback when `RESEND_API_KEY` is not set:
 
 ```ini
